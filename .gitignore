@@ -19,3 +19,7 @@
 
 # Go workspace file
 go.work
+
+# Executable
+/gh-language
+/gh-language.exe
