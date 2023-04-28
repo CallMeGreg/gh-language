@@ -2,25 +2,69 @@ package main
 
 import (
 	"fmt"
+	"os"
 
-	"github.com/cli/go-gh"
+	"github.com/spf13/cobra"
 )
 
-func main() {
-	fmt.Println("hi world, this is the gh-language extension!")
-	client, err := gh.RESTClient(nil)
-	if err != nil {
-		fmt.Println(err)
+func _main() error {
+	rootCmd := &cobra.Command{
+		Use:   "language <subcommand> [flags]",
+		Short: "gh language",
+	}
+
+	rootCmd.PersistentFlags().BoolP("primary", "P", false, "Boolean value to only consider the primary language of each reposiotry")
+
+	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
-	response := struct {Login string}{}
-	err = client.Get("user", &response)
-	if err != nil {
-		fmt.Println(err)
-		return
+
+	distributionCmd := &cobra.Command{
+		Use:   "distribution [<org>]",
+		Short: "Analyze the distribution of programming languages used in repos across an organization",
+		Args:  cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) (err error) {
+			return runDistribution(cmd, args)
+		},
 	}
-	fmt.Printf("running as %s\n", response.Login)
+
+	dataCmd := &cobra.Command{
+		Use:   "data [<org>]",
+		Short: "Analyze the bytes of code written per programming language across an organization",
+		RunE: func(cmd *cobra.Command, args []string) (err error) {
+			// ...
+			return
+		},
+	}
+
+	rootCmd.AddCommand(distributionCmd)
+	rootCmd.AddCommand(dataCmd)
+
+	return rootCmd.Execute()
 }
 
-// For more examples of using go-gh, see:
-// https://github.com/cli/go-gh/blob/trunk/example_gh_test.go
+func runDistribution(cmd *cobra.Command, args []string) (err error) {
+	var org string
+	if len(args) > 0 {
+		org = args[0]
+	} else {
+		org = os.Getenv("GITHUB_ORG")
+		if org == "" {
+			return fmt.Errorf("No organization specified.")
+		}
+	}
+	fmt.Printf("Analyzing organization: %s\n", org)
+
+	primary, _ := cmd.Flags().GetBool("primary")
+	if primary {
+		fmt.Println("Only considering primary languages.")
+	}
+
+	return
+}
+
+func main() {
+	if err := _main(); err != nil {
+		fmt.Fprintf(os.Stderr, "X %s", err.Error())
+	}
+}
