@@ -1,8 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
+	"sort"
+	"strconv"
 
 	"github.com/spf13/cobra"
 )
@@ -13,37 +17,47 @@ func _main() error {
 		Short: "gh language",
 	}
 
-	rootCmd.PersistentFlags().BoolP("primary", "P", false, "Boolean value to only consider the primary language of each reposiotry")
+	rootCmd.PersistentFlags().IntP("limit", "L", 100, "The maximum number of repositories to evaluate")
+	rootCmd.PersistentFlags().IntP("top", "T", 10, "Return the top N languages")
 
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
-	distributionCmd := &cobra.Command{
-		Use:   "distribution [<org>]",
-		Short: "Analyze the distribution of programming languages used in repos across an organization",
+	countCmd := &cobra.Command{
+		Use:   "count [<org>]",
+		Short: "Analyze the count of programming languages used in repos across an organization",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			return runDistribution(cmd, args)
+			return runCount(cmd, args)
 		},
 	}
+	rootCmd.AddCommand(countCmd)
 
-	dataCmd := &cobra.Command{
-		Use:   "data [<org>]",
-		Short: "Analyze the bytes of code written per programming language across an organization",
-		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			// ...
-			return
-		},
-	}
-
-	rootCmd.AddCommand(distributionCmd)
-	rootCmd.AddCommand(dataCmd)
+	// dataCmd := &cobra.Command{
+	// 	Use:   "data [<org>]",
+	// 	Short: "Analyze the bytes of code written per programming language across an organization",
+	// 	RunE: func(cmd *cobra.Command, args []string) (err error) {
+	// 		// ...
+	// 		return
+	// 	},
+	// }
+	// rootCmd.AddCommand(dataCmd)
 
 	return rootCmd.Execute()
 }
 
-func runDistribution(cmd *cobra.Command, args []string) (err error) {
+func runCount(cmd *cobra.Command, args []string) (err error) {
+	repoLimit, _ := cmd.Flags().GetInt("limit")
+	if repoLimit > 0 {
+		fmt.Printf("Limiting to %d repositories.\n", repoLimit)
+	}
+
+	top, _ := cmd.Flags().GetInt("top")
+	if top > 0 {
+		fmt.Printf("Returning the top %d languages.\n", top)
+	}
+
 	var org string
 	if len(args) > 0 {
 		org = args[0]
@@ -55,9 +69,65 @@ func runDistribution(cmd *cobra.Command, args []string) (err error) {
 	}
 	fmt.Printf("Analyzing organization: %s\n", org)
 
-	primary, _ := cmd.Flags().GetBool("primary")
-	if primary {
-		fmt.Println("Only considering primary languages.")
+	repo_cmd := exec.Command("gh", "repo", "list", org, "--limit", strconv.FormatInt(int64(repoLimit), 10), "--json", "nameWithOwner,languages")
+	repolanguages, err := repo_cmd.Output()
+	if err != nil {
+		fmt.Printf("Error: %s\n", err.Error())
+		return
+	}
+
+	type jsonLanguage struct {
+		Size int `json:"size"`
+		Node struct {
+			Name string `json:"name"`
+		} `json:"node"`
+	}
+
+	type Repo struct {
+		Languages []jsonLanguage `json:"languages"`
+	}
+
+	var repos []Repo
+
+	jsonErr := json.Unmarshal(repolanguages, &repos)
+	if jsonErr != nil {
+		fmt.Printf("Error: %s\n", jsonErr.Error())
+		return
+	}
+
+	languageCount := make(map[string]int)
+	repoCount := len(repos)
+
+	for _, repo := range repos {
+		for _, language := range repo.Languages {
+			languageCount[language.Node.Name]++
+		}
+	}
+
+	type outputLanguage struct {
+		name  string
+		count int
+	}
+
+	// convert the map to a slice
+	languages := make([]outputLanguage, 0, len(languageCount))
+	for name, count := range languageCount {
+		languages = append(languages, outputLanguage{name, count})
+	}
+
+	// sort the slice by count in descending order
+	sort.Slice(languages, func(i, j int) bool {
+		return languages[i].count > languages[j].count
+	})
+
+	// print out the top N languages, along with the percent frequency
+	counter := 0
+	for _, lang := range languages {
+		if counter >= top {
+			break
+		}
+		fmt.Printf("%*d repos (%d%%) that include the language: %s\n", len(strconv.Itoa(repoCount)), lang.count, (lang.count*100)/repoCount, lang.name)
+		counter++
 	}
 
 	return
