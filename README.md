@@ -11,7 +11,21 @@ gh extension install CallMeGreg/gh-language
 ```
 
 # Usage
+Examples:
 ```
+gh language count YOUR_ORG_NAME
+```
+
+```
+gh language count YOUR_ORG_NAME --limit 1000 --top 20
+```
+
+For help, run:
+```
+gh language -h
+```
+
+``` 
 Usage:
   language [command]
 
