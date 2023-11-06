@@ -17,8 +17,8 @@ func _main() error {
 		Short: "gh language",
 	}
 
-	rootCmd.PersistentFlags().IntP("limit", "L", 100, "The maximum number of repositories to evaluate")
-	rootCmd.PersistentFlags().IntP("top", "T", 10, "Return the top N languages")
+	rootCmd.PersistentFlags().IntP("limit", "l", 100, "The maximum number of repositories to evaluate")
+	rootCmd.PersistentFlags().IntP("top", "t", 10, "Return the top N languages")
 
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) (err error) {
 		return
