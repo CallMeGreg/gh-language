@@ -34,29 +34,10 @@ func _main() error {
 	}
 	rootCmd.AddCommand(countCmd)
 
-	// dataCmd := &cobra.Command{
-	// 	Use:   "data [<org>]",
-	// 	Short: "Analyze the bytes of code written per programming language across an organization",
-	// 	RunE: func(cmd *cobra.Command, args []string) (err error) {
-	// 		// ...
-	// 		return
-	// 	},
-	// }
-	// rootCmd.AddCommand(dataCmd)
-
 	return rootCmd.Execute()
 }
 
 func runCount(cmd *cobra.Command, args []string) (err error) {
-	repoLimit, _ := cmd.Flags().GetInt("limit")
-	if repoLimit > 0 {
-		fmt.Printf("Limiting to %d repositories.\n", repoLimit)
-	}
-
-	top, _ := cmd.Flags().GetInt("top")
-	if top > 0 {
-		fmt.Printf("Returning the top %d languages.\n", top)
-	}
 
 	var org string
 	if len(args) > 0 {
@@ -68,6 +49,16 @@ func runCount(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 	fmt.Printf("Analyzing organization: %s\n", org)
+
+	repoLimit, _ := cmd.Flags().GetInt("limit")
+	if repoLimit > 0 {
+		fmt.Printf("Limiting to %d repositories.\n", repoLimit)
+	}
+
+	top, _ := cmd.Flags().GetInt("top")
+	if top > 0 {
+		fmt.Printf("Returning the top %d languages.\n", top)
+	}
 
 	repo_cmd := exec.Command("gh", "repo", "list", org, "--limit", strconv.FormatInt(int64(repoLimit), 10), "--json", "nameWithOwner,languages")
 	repolanguages, err := repo_cmd.Output()
