@@ -35,9 +35,10 @@ Available Commands:
   help        Help about any command
 
 Flags:
-  -h, --help        help for language
-  -L, --limit int   The maximum number of repositories to evaluate (default 100)
-  -T, --top int     Return the top N languages (default 10)
+  -h, --help              help for language
+  -L, --language string   The language to filter on
+  -l, --limit int         The maximum number of repositories to evaluate (default 100)
+  -t, --top int           Return the top N languages (default 10)
 
 Use "language [command] --help" for more information about a command.
 ```
