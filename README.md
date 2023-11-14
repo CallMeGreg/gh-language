@@ -1,8 +1,8 @@
 # GitHub Language Analyzer
-This is a command-line tool for analyzing the count of programming languages used in repositories across a GitHub organization. It uses the `gh` command-line tool to retrieve a list of repositories and their associated languages, and then aggregates the data to produce a report of the top N languages used along with their frequency.
+This is an extension to the `gh` command-line tool for analyzing the count of programming languages used in repositories across a GitHub organization. It uses `gh` commands to retrieve a list of repositories and their associated languages, and then aggregates the data to produce a report of the languages used along with their frequency.
 
 # Pre-requisites
-Install the GitHub CLI: https://github.com/cli/cli#installation
+1. Install the GitHub CLI: https://github.com/cli/cli#installation
 
 # Installation
 To install this extension, run the following command:
