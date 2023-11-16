@@ -29,10 +29,12 @@ type languageCount struct {
 }
 
 func _main() error {
+
 	rootCmd := &cobra.Command{
 		Use:   "language <subcommand> [flags]",
 		Short: "gh language",
 	}
+	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
 	rootCmd.PersistentFlags().IntP("limit", "l", 100, "The maximum number of repositories to evaluate")
 	rootCmd.PersistentFlags().IntP("top", "t", 10, "Return the top N languages (ignored when a language is specified)")
