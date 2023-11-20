@@ -3,6 +3,11 @@ This is an extension to the `gh` command-line tool for analyzing the count of pr
 
 # Pre-requisites
 1. Install the GitHub CLI: https://github.com/cli/cli#installation
+2. Confirm that you are authenticated with an account that has access to the org you would like to analyze:
+
+```
+gh auth status
+```
 
 # Installation
 To install this extension, run the following command:
@@ -11,11 +16,12 @@ gh extension install CallMeGreg/gh-language
 ```
 
 # Usage
-Examples:
+Simplest example:
 ```
 gh language count YOUR_ORG_NAME
 ```
 
+Optionally specify the repo limit (`--limit`) and/or the number of languages to return (`--top`)
 ```
 gh language count YOUR_ORG_NAME --limit 1000 --top 20
 ```
