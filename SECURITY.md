@@ -10,4 +10,4 @@
 
 If you notice a security vulnerability with this project, please [open up a new private vulnerability report](https://github.com/CallMeGreg/gh-language/security/advisories/new).
 
-I will respond at my earleist convenience, and open up a public security advisory after triaging the concern.
+I will respond at my earliest convenience, and open up a public security advisory after triaging the concern.
