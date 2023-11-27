@@ -107,6 +107,8 @@ func runCount(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
+	fmt.Printf("Identified %d reposiotries. Beginning analysis...\n", len(repos))
+
 	languageMap := make(map[string]int)
 	analyzedRepoCount := len(repos)
 
