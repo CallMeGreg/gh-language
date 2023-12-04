@@ -1,4 +1,4 @@
-module github.com/CallMeGreg/gh-language
+module github.com/CallMeGreg/gh-languagezaq	// this is the module name
 
 go 1.19
 
