@@ -23,3 +23,5 @@ go.work
 # Executable
 /gh-language
 /gh-language.exe
+
+release-command.md
