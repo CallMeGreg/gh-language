@@ -3,11 +3,11 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"os/exec"
 	"sort"
 	"strconv"
+	"time"
 
+	"github.com/cli/go-gh"
 	"github.com/spf13/cobra"
 )
 
@@ -26,51 +26,55 @@ func runCount(cmd *cobra.Command, args []string) (err error) {
 	if len(args) > 0 {
 		org = args[0]
 	} else {
-		org = os.Getenv("GITHUB_ORG")
-		if org == "" {
-			return fmt.Errorf("No organization specified.")
-		}
+		return fmt.Errorf(Red("No organization specified."))
 	}
-	fmt.Printf("Analyzing organization: %s\n", org)
+	fmt.Printf(Yellow("Analyzing organization: %s\n"), org)
 
-	languageFilter, _ := cmd.Flags().GetString("language")
+	language, _ := cmd.Flags().GetString("language")
 	top, _ := cmd.Flags().GetInt("top")
 
 	repoLimit, _ := cmd.Flags().GetInt("limit")
 	if repoLimit > 0 {
-		fmt.Printf("Limiting to %d repositories.\n", repoLimit)
+		fmt.Printf(Yellow("Limiting to %d repositories.\n"), repoLimit)
 	} else {
-		fmt.Printf("Please select a repository limit greater than 0.\n")
+		fmt.Printf(Red("Please select a repository limit greater than 0.\n"))
 		return
 	}
 
-	if languageFilter != "" {
-		fmt.Printf("Filtering on language: %s\n", languageFilter)
+	if language != "" {
+		fmt.Printf(Yellow("Filtering on language: %s\n"), language)
 	} else {
 		if top > 0 {
-			fmt.Printf("Returning the top %d languages.\n", top)
+			fmt.Printf(Yellow("Returning the top %d languages.\n"), top)
 		} else {
-			fmt.Printf("Please select a top languages value greater than 0.\n")
+			fmt.Printf(Red("Please select a top languages value greater than 0.\n"))
 			return
 		}
 	}
 
-	repo_cmd := exec.Command("gh", "repo", "list", org, "--limit", strconv.FormatInt(int64(repoLimit), 10), "--json", "nameWithOwner,languages")
-	repolanguages, err := repo_cmd.Output()
+	fmt.Println(Yellow("Fetching repositories and analyzing languages..."))
+
+	repolanguages, _, err := gh.Exec("repo", "list", org, "--limit", strconv.FormatInt(int64(repoLimit), 10), "--json", "nameWithOwner,languages,createdAt")
 	if err != nil {
 		fmt.Printf("Error: %s\n", err.Error())
 		return
 	}
 
 	var repos []Repo
-
-	jsonErr := json.Unmarshal(repolanguages, &repos)
+	jsonErr := json.Unmarshal(repolanguages.Bytes(), &repos)
 	if jsonErr != nil {
 		fmt.Printf("Error: %s\n", jsonErr.Error())
 		return
 	}
 
-	fmt.Printf("Identified %d repositories. Beginning analysis...\n", len(repos))
+	// Sort repos by descending createdAt date
+	sort.Slice(repos, func(i, j int) bool {
+		iTime, _ := time.Parse(time.RFC3339, repos[i].CreatedAt)
+		jTime, _ := time.Parse(time.RFC3339, repos[j].CreatedAt)
+		return iTime.After(jTime)
+	})
+
+	fmt.Printf(Yellow("Analyzed %d repositories.\n"), len(repos))
 
 	languageMap := make(map[string]int)
 	analyzedRepoCount := len(repos)
@@ -93,10 +97,10 @@ func runCount(cmd *cobra.Command, args []string) (err error) {
 	})
 
 	// if a language was specified, only print that result:
-	if languageFilter != "" {
+	if language_flag != "" {
 		// get the language details from the map:
-		languageCount := languageMap[languageFilter]
-		fmt.Printf("%*d repos (%*d%%) that include the language: %s\n", len(strconv.Itoa(analyzedRepoCount)), languageCount, 2, (languageCount*100)/analyzedRepoCount, languageFilter)
+		languageCount := languageMap[language_flag]
+		fmt.Printf("%*d repos (%*d%%) that include the language: %s\n", len(strconv.Itoa(analyzedRepoCount)), languageCount, 2, (languageCount*100)/analyzedRepoCount, language_flag)
 	} else {
 		// print out the top N languages, along with the percent frequency
 		counter := 0
