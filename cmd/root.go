@@ -7,22 +7,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type languageDetails struct {
-	Size int `json:"size"`
-	Node struct {
-		Name string `json:"name"`
-	} `json:"node"`
-}
-
-type Repo struct {
-	Languages     []languageDetails `json:"languages"`
-	NameWithOwner string            `json:"nameWithOwner"`
-}
-
-type languageCount struct {
-	name  string
-	count int
-}
+var limit_flag int
+var top_flag int
+var language_flag string
 
 func _root() error {
 
@@ -32,11 +19,11 @@ func _root() error {
 	}
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
-	rootCmd.PersistentFlags().IntP("limit", "l", 100, "The maximum number of repositories to evaluate")
-	rootCmd.PersistentFlags().IntP("top", "t", 10, "Return the top N languages (ignored when a language is specified)")
-	rootCmd.PersistentFlags().StringP("language", "L", "", "The language to filter on")
+	rootCmd.PersistentFlags().IntVarP(&limit_flag, "limit", "l", 100, "The maximum number of repositories to evaluate")
+	rootCmd.PersistentFlags().IntVarP(&top_flag, "top", "t", 10, "Return the top N languages (ignored when a language is specified)")
+	rootCmd.PersistentFlags().StringVarP(&language_flag, "language", "L", "", "The language to filter on")
 
-	// add mutually exclusive check for top and language
+	rootCmd.MarkFlagsMutuallyExclusive("top", "language")
 
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) (err error) {
 		return
@@ -49,6 +36,6 @@ func _root() error {
 
 func Root() {
 	if err := _root(); err != nil {
-		fmt.Fprintf(os.Stderr, "X %s", err.Error())
+		fmt.Fprintf(os.Stderr, Red("Error: %s"), err.Error())
 	}
 }
