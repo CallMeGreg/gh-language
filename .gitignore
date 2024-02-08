@@ -21,5 +21,7 @@ go.work
 /gh-language
 /gh-language.exe
 
+gh-language-*
+
 release-command.md
 command-design.md
