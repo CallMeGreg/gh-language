@@ -22,6 +22,7 @@ Display the count of programming languages used in repos across an organization.
 ```
 gh language count YOUR_ORG_NAME
 ```
+<img width="514" alt="Screenshot 2024-04-23 at 11 17 09 AM" src="https://github.com/CallMeGreg/gh-language/assets/110078080/f4e4bac7-31f6-4cfd-a3e6-e6161b38feb7">
 
 Optionally specify the repo limit (`--limit`) and/or the number of languages to return (`--top`)
 ```
@@ -40,6 +41,7 @@ Display the breakdown of programming languages used in repos across an organizat
 ```
 gh language trend YOUR_ORG_NAME
 ```
+<img width="522" alt="Screenshot 2024-04-23 at 11 18 06 AM" src="https://github.com/CallMeGreg/gh-language/assets/110078080/dcba7dfb-6fae-4881-9e84-3be35016d99a">
 
 Optionally specify the repo limit (`--limit`) and/or the number of languages to return (`--top`)
 ```
