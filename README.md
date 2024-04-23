@@ -16,7 +16,9 @@ gh extension install CallMeGreg/gh-language
 ```
 
 # Usage
-Simplest example:
+
+## Count command
+Display the count of programming languages used in repos across an organization.
 ```
 gh language count YOUR_ORG_NAME
 ```
@@ -26,6 +28,32 @@ Optionally specify the repo limit (`--limit`) and/or the number of languages to 
 gh language count YOUR_ORG_NAME --limit 1000 --top 20
 ```
 
+Optionally filter by a specific language (`--language`)
+```
+gh language count YOUR_ORG_NAME --language Java
+```
+> [!NOTE]
+> The `--language` flag values are case-sensitive.
+
+## Trend command
+Display the breakdown of programming languages used in repos across an organization per year, based on the repo creation date.
+```
+gh language trend YOUR_ORG_NAME
+```
+
+Optionally specify the repo limit (`--limit`) and/or the number of languages to return (`--top`)
+```
+gh language trend YOUR_ORG_NAME --limit 1000 --top 20
+```
+
+Optionally filter by a specific language (`--language`)
+```
+gh language trend YOUR_ORG_NAME --language Java
+```
+> [!NOTE]
+> The `--language` flag values are case-sensitive.
+
+## Help
 For help, run:
 ```
 gh language -h
