@@ -30,6 +30,7 @@ func _root() error {
 	}
 
 	rootCmd.AddCommand(countCmd)
+	rootCmd.AddCommand(trendCmd)
 
 	return rootCmd.Execute()
 }
