@@ -36,15 +36,15 @@ Usage:
   language [command]
 
 Available Commands:
-  completion  Generate the autocompletion script for the specified shell
   count       Analyze the count of programming languages used in repos across an organization
   help        Help about any command
+  trend       Analyze the trend of programming languages used in repos across an organization over time
 
 Flags:
   -h, --help              help for language
   -L, --language string   The language to filter on
   -l, --limit int         The maximum number of repositories to evaluate (default 100)
-  -t, --top int           Return the top N languages (default 10)
+  -t, --top int           Return the top N languages (ignored when a language is specified) (default 10)
 
 Use "language [command] --help" for more information about a command.
 ```
