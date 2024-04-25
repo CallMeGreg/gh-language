@@ -53,8 +53,8 @@ func runTrend(cmd *cobra.Command, args []string) (err error) {
 
 	repos, err := getAllRepos(org, language, repoLimit)
 
+	// Create a mapping between year and count of each language
 	languageMapPerYear := make(map[int]map[string]int)
-
 	for _, repo := range repos {
 		t, err := time.Parse(GITHUB_TIMESTAMP_LAYOUT, repo.CreatedAt)
 		if err != nil {
@@ -70,10 +70,24 @@ func runTrend(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 
-	for year, languageMap := range languageMapPerYear {
+	// Extract the keys (years) into a slice
+	years := make([]int, 0, len(languageMapPerYear))
+	for year := range languageMapPerYear {
+		years = append(years, year)
+	}
+
+	// Sort the slice in ascending order
+	sort.Ints(years)
+
+	// Reverse the slice to get it in descending order
+	for i, j := 0, len(years)-1; i < j; i, j = i+1, j-1 {
+		years[i], years[j] = years[j], years[i]
+	}
+
+	for _, year := range years {
 		// convert the map to a slice
-		languages := make([]languageCount, 0, len(languageMap))
-		for name, count := range languageMap {
+		languages := make([]languageCount, 0, len(languageMapPerYear[year]))
+		for name, count := range languageMapPerYear[year] {
 			languages = append(languages, languageCount{name, count})
 		}
 
