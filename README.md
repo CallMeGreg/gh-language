@@ -58,6 +58,33 @@ gh language trend YOUR_ORG_NAME --language Java
 > [!NOTE]
 > The `--language` flag values are case-sensitive.
 
+## Data command
+Analyze language data by bytes across repositories in an organization.
+```
+gh language data --org YOUR_ORG_NAME
+```
+
+Optionally specify the repo limit (`--limit`) and/or the number of languages to return (`--top`):
+```
+gh language data --org YOUR_ORG_NAME --limit 1000 --top 5
+```
+
+Optionally filter by a specific language (`--language`):
+```
+gh language data --org YOUR_ORG_NAME --language Java
+```
+
+Specify the unit for displaying data (`--unit`):
+```
+gh language data --org YOUR_ORG_NAME --unit megabytes
+```
+
+> [!NOTE]
+> The `--language` flag values are case-sensitive.
+
+### Sorting Logic
+The `data` subcommand sorts language data in descending order by size (bytes). When the `--top` flag is used, only the top N languages are displayed.
+
 ## Help
 For help, run:
 ```
@@ -70,6 +97,7 @@ Usage:
 
 Available Commands:
   count       Analyze the count of programming languages used in repos across an organization
+  data        Analyze language data by bytes for a specific repository
   help        Help about any command
   trend       Analyze the trend of programming languages used in repos across an organization over time
 

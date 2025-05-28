@@ -3,77 +3,49 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"sort"
-	"strconv"
-	"time"
 
 	"github.com/cli/go-gh"
+	"github.com/pterm/pterm"
 )
-
-type languageDetails struct {
-	Size      int    `json:"size"`
-	CreatedAt string `json:"createdAt"`
-	Node      struct {
-		Name string `json:"name"`
-	} `json:"node"`
-}
-
-type Repo struct {
-	Languages     []languageDetails `json:"languages"`
-	CreatedAt     string            `json:"createdAt"`
-	NameWithOwner string            `json:"nameWithOwner"`
-}
-
-type languageCount struct {
-	name  string
-	count int
-}
 
 func Red(s string) string {
 	return "\x1b[31m" + s + "\x1b[m"
-}
-
-func Green(s string) string {
-	return "\x1b[32m" + s + "\x1b[m"
 }
 
 func Yellow(s string) string {
 	return "\x1b[33m" + s + "\x1b[m"
 }
 
-func Blue(s string) string {
-	return "\x1b[34m" + s + "\x1b[m"
-}
+// FetchRepositories fetches repositories for a given organization and limit.
+func FetchRepositories(org string, limit int) ([]struct {
+	Name      string `json:"name"`
+	CreatedAt string `json:"created_at"`
+}, error) {
+	if org == "" {
+		return nil, fmt.Errorf("--org flag is required")
+	}
 
-func Gray(s string) string {
-	return "\x1b[90m" + s + "\x1b[m"
-}
-
-func getAllRepos(org, language string, repoLimit int) ([]Repo, error) {
-
-	fmt.Println(Yellow("Fetching repositories and analyzing languages..."))
-
-	repolanguages, _, err := gh.Exec("repo", "list", org, "--limit", strconv.FormatInt(int64(repoLimit), 10), "--json", "nameWithOwner,languages,createdAt")
+	reposOutput, _, err := gh.Exec("api", fmt.Sprintf("orgs/%s/repos?per_page=%d", org, limit))
 	if err != nil {
-		fmt.Printf("Error: %s\n", err.Error())
-		return []Repo{}, err
+		pterm.Error.Println("Failed to fetch repositories:", err)
+		return nil, err
 	}
 
-	var repos []Repo
-	jsonErr := json.Unmarshal(repolanguages.Bytes(), &repos)
-	if jsonErr != nil {
-		fmt.Printf("Error: %s\n", jsonErr.Error())
-		return []Repo{}, jsonErr
+	var repos []struct {
+		Name      string `json:"name"`
+		CreatedAt string `json:"created_at"`
 	}
-
-	// Sort repos by descending createdAt date
-	sort.Slice(repos, func(i, j int) bool {
-		iTime, _ := time.Parse(time.RFC3339, repos[i].CreatedAt)
-		jTime, _ := time.Parse(time.RFC3339, repos[j].CreatedAt)
-		return iTime.After(jTime)
-	})
-
-	fmt.Printf(Yellow("Analyzed %d repositories.\n"), len(repos))
+	if err := json.Unmarshal(reposOutput.Bytes(), &repos); err != nil {
+		pterm.Error.Println("Failed to parse repositories data:", err)
+		return nil, err
+	}
 
 	return repos, nil
+}
+
+// ShowProgressBar displays a progress bar.
+func ShowProgressBar(total int, title string) {
+	progressBar, _ := pterm.DefaultProgressbar.WithTotal(total).WithTitle(title).Start()
+	progressBar.Increment()
+	progressBar.Stop()
 }

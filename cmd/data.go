@@ -10,16 +10,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var countCmd = &cobra.Command{
-	Use:   "count",
-	Short: "Analyze the count of programming languages used in repos across an organization",
-	RunE: func(cmd *cobra.Command, args []string) (err error) {
-		return runCount(cmd, args)
-	},
+type LanguageData struct {
+	Language string `json:"language"`
+	Bytes    int    `json:"bytes"`
 }
 
-func runCount(cmd *cobra.Command, args []string) error {
+var dataCmd = &cobra.Command{
+	Use:   "data",
+	Short: "Analyze language data by bytes",
+	RunE:  runData,
+}
+
+func runData(cmd *cobra.Command, args []string) error {
 	org, _ := cmd.Flags().GetString("org")
+	unit, _ := cmd.Flags().GetString("unit")
 	limit := limit_flag       // Reuse the root command flag for limit
 	top := top_flag           // Reuse the root command flag for top
 	language := language_flag // Reuse the root command flag for language
@@ -28,20 +32,15 @@ func runCount(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("--org flag is required")
 	}
 
+	if unit != "bytes" && unit != "kilobytes" && unit != "megabytes" && unit != "gigabytes" {
+		return fmt.Errorf("invalid unit specified. Options are: bytes, kilobytes, megabytes, gigabytes")
+	}
+
 	pterm.DefaultSection.Println(fmt.Sprintf("Fetching repositories for organization: %s", org))
 
 	repos, err := FetchRepositories(org, limit)
 	if err != nil {
 		return err
-	}
-
-	if len(repos) > limit {
-		ShowProgressBar(limit, "Fetching repositories")
-	}
-
-	// Respect the --limit flag
-	if limit > 0 && limit < len(repos) {
-		repos = repos[:limit]
 	}
 
 	languageData := make(map[string]int)
@@ -64,8 +63,8 @@ func runCount(cmd *cobra.Command, args []string) error {
 			continue
 		}
 
-		for lang := range repoLanguages {
-			languageData[lang]++
+		for lang, bytes := range repoLanguages {
+			languageData[lang] += bytes
 		}
 	}
 
@@ -74,9 +73,9 @@ func runCount(cmd *cobra.Command, args []string) error {
 	// Filter by specific language if --language flag is set
 	if language != "" {
 		filteredLanguageData := make(map[string]int)
-		for lang, count := range languageData {
+		for lang, bytes := range languageData {
 			if lang == language {
-				filteredLanguageData[lang] = count
+				filteredLanguageData[lang] = bytes
 			}
 		}
 		languageData = filteredLanguageData
@@ -86,50 +85,66 @@ func runCount(cmd *cobra.Command, args []string) error {
 	if top > 0 {
 		sortedLanguages := make([]struct {
 			Language string
-			Count    int
+			Bytes    int
 		}, 0, len(languageData))
 
-		for lang, count := range languageData {
+		for lang, bytes := range languageData {
 			sortedLanguages = append(sortedLanguages, struct {
 				Language string
-				Count    int
-			}{lang, count})
+				Bytes    int
+			}{lang, bytes})
 		}
 
 		sort.Slice(sortedLanguages, func(i, j int) bool {
-			return sortedLanguages[i].Count > sortedLanguages[j].Count
+			return sortedLanguages[i].Bytes > sortedLanguages[j].Bytes
 		})
 
 		topLanguages := make(map[string]int)
 		for i := 0; i < top && i < len(sortedLanguages); i++ {
-			topLanguages[sortedLanguages[i].Language] = sortedLanguages[i].Count
+			topLanguages[sortedLanguages[i].Language] = sortedLanguages[i].Bytes
 		}
 
 		languageData = topLanguages
 	}
 
 	pterm.DefaultTable.WithHasHeader(true).WithData(func() [][]string {
-		rows := [][]string{{"Language", "Count", "Percentage"}}
+		rows := [][]string{{"Language", unit, "Percentage"}}
 
 		sortedLanguages := make([]struct {
 			Language string
-			Count    int
+			Value    float64
 		}, 0, len(languageData))
 
-		for lang, count := range languageData {
+		var totalBytes int
+		for _, bytes := range languageData {
+			totalBytes += bytes
+		}
+
+		for lang, bytes := range languageData {
+			var value float64
+			switch unit {
+			case "bytes":
+				value = float64(bytes)
+			case "kilobytes":
+				value = float64(bytes) / 1024
+			case "megabytes":
+				value = float64(bytes) / 1024 / 1024
+			case "gigabytes":
+				value = float64(bytes) / 1024 / 1024 / 1024
+			}
 			sortedLanguages = append(sortedLanguages, struct {
 				Language string
-				Count    int
-			}{lang, count})
+				Value    float64
+			}{lang, value})
 		}
 
 		sort.Slice(sortedLanguages, func(i, j int) bool {
-			return sortedLanguages[i].Count > sortedLanguages[j].Count
+			return sortedLanguages[i].Value > sortedLanguages[j].Value
 		})
 
 		for _, langData := range sortedLanguages {
-			percentage := int(float64(langData.Count) / float64(len(repos)) * 100)
-			rows = append(rows, []string{langData.Language, fmt.Sprintf("%d", langData.Count), fmt.Sprintf("%d%%", percentage)})
+			percentage := int(float64(languageData[langData.Language]) / float64(totalBytes) * 100)
+			rows = append(rows, []string{langData.Language, fmt.Sprintf("%.2f", langData.Value), fmt.Sprintf("%d%%", percentage)})
 		}
 
 		return rows
@@ -139,6 +154,7 @@ func runCount(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
-	RootCmd.AddCommand(countCmd)
-	countCmd.Flags().String("org", "", "Organization name")
+	RootCmd.AddCommand(dataCmd)
+	dataCmd.Flags().String("org", "", "Organization name")
+	dataCmd.Flags().String("unit", "megabytes", "Unit to display language data (options: bytes, kilobytes, megabytes, gigabytes)")
 }

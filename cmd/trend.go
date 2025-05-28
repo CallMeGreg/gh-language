@@ -1,74 +1,75 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
-	"strconv"
 	"time"
 
+	"github.com/cli/go-gh"
+	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 )
 
 const GITHUB_TIMESTAMP_LAYOUT = "2006-01-02T15:04:05Z"
 
 var trendCmd = &cobra.Command{
-	Use:   "trend [<org>]",
+	Use:   "trend",
 	Short: "Analyze the trend of programming languages used in repos across an organization over time",
-	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		return runTrend(cmd, args)
 	},
 }
 
-func runTrend(cmd *cobra.Command, args []string) (err error) {
-	var org string
-	if len(args) > 0 {
-		org = args[0]
-	} else {
-		return fmt.Errorf(Red("No organization specified."))
-	}
-	fmt.Printf(Yellow("Analyzing organization: %s\n"), org)
+func runTrend(cmd *cobra.Command, args []string) error {
+	org, _ := cmd.Flags().GetString("org")
+	limit := limit_flag // Reuse the root command flag for limit
+	top := top_flag     // Reuse the root command flag for top
 
-	language, _ := cmd.Flags().GetString("language")
-	top, _ := cmd.Flags().GetInt("top")
-	repoLimit, _ := cmd.Flags().GetInt("limit")
-
-	if repoLimit > 0 {
-		fmt.Printf(Yellow("Limiting to %d repositories.\n"), repoLimit)
-	} else {
-		fmt.Print(Red("Please select a repository limit greater than 0.\n"))
-		return
+	repos, err := FetchRepositories(org, limit)
+	if err != nil {
+		return err
 	}
 
-	if language != "" {
-		fmt.Printf(Yellow("Filtering on language: %s\n"), language)
-	} else {
-		if top > 0 {
-			fmt.Printf(Yellow("Returning the top %d languages.\n"), top)
-		} else {
-			fmt.Print(Red("Please select a top languages value greater than 0.\n"))
-			return
-		}
+	if len(repos) > limit {
+		ShowProgressBar(limit, "Fetching repositories")
 	}
 
-	repos, err := getAllRepos(org, language, repoLimit)
-
-	// Create a mapping between year and count of each language
 	languageMapPerYear := make(map[int]map[string]int)
+
+	progressBar, _ := pterm.DefaultProgressbar.WithTotal(len(repos)).WithTitle("Processing repositories").Start()
+
 	for _, repo := range repos {
+		progressBar.UpdateTitle("Fetching language data for repositories...")
+		progressBar.Increment()
+
+		output, _, err := gh.Exec("api", fmt.Sprintf("repos/%s/%s/languages", org, repo.Name))
+		if err != nil {
+			pterm.Warning.Println(fmt.Sprintf("Skipping repository %s due to error: %s", repo.Name, err))
+			continue
+		}
+
+		var repoLanguages map[string]int
+		if err := json.Unmarshal(output.Bytes(), &repoLanguages); err != nil {
+			pterm.Warning.Println(fmt.Sprintf("Skipping repository %s due to parsing error: %s", repo.Name, err))
+			continue
+		}
+
 		t, err := time.Parse(GITHUB_TIMESTAMP_LAYOUT, repo.CreatedAt)
 		if err != nil {
-			fmt.Print(Red("Error parsing CreatedAt date. Skipping repo: " + repo.NameWithOwner + "\n"))
+			pterm.Warning.Println(fmt.Sprintf("Skipping repository %s due to date parsing error: %s", repo.Name, err))
 			continue
 		}
 		year := t.Year()
 		if _, ok := languageMapPerYear[year]; !ok {
 			languageMapPerYear[year] = make(map[string]int)
 		}
-		for _, language := range repo.Languages {
-			languageMapPerYear[year][language.Node.Name]++
+		for lang := range repoLanguages {
+			languageMapPerYear[year][lang]++
 		}
 	}
+
+	progressBar.Stop()
 
 	// Extract the keys (years) into a slice
 	years := make([]int, 0, len(languageMapPerYear))
@@ -85,38 +86,39 @@ func runTrend(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	for _, year := range years {
-		// convert the map to a slice
-		languages := make([]languageCount, 0, len(languageMapPerYear[year]))
-		for name, count := range languageMapPerYear[year] {
-			languages = append(languages, languageCount{name, count})
+		pterm.DefaultSection.Println(fmt.Sprintf("Year: %d", year))
+		sortedLanguages := make([]struct {
+			Language string
+			Count    int
+		}, 0, len(languageMapPerYear[year]))
+
+		for lang, count := range languageMapPerYear[year] {
+			sortedLanguages = append(sortedLanguages, struct {
+				Language string
+				Count    int
+			}{lang, count})
 		}
 
-		// sort the slice by count in descending order
-		sort.Slice(languages, func(i, j int) bool {
-			return languages[i].count > languages[j].count
+		sort.Slice(sortedLanguages, func(i, j int) bool {
+			return sortedLanguages[i].Count > sortedLanguages[j].Count
 		})
-		if language_flag == "" {
-			fmt.Printf(Green("Repos created in year: %d\n"), year)
-			// print out the top N languages, along with the percent frequency
-			counter := 0
-			for _, lang := range languages {
-				if counter >= top {
-					break
-				}
-				fmt.Printf("  %*d repos (%*d%%) that include the language: %s\n", len(strconv.Itoa(len(repos))), lang.count, 2, (lang.count*100)/len(repos), lang.name)
-				counter++
+
+		rows := [][]string{{"Language", "Count", "Percentage"}}
+		for i, langData := range sortedLanguages {
+			if top > 0 && i >= top {
+				break
 			}
-			// if a language was specified, only print that result:
-		} else {
-			for _, lang := range languages {
-				if lang.name == language_flag {
-					fmt.Printf(Green("Repos created in year: %d\n"), year)
-					fmt.Printf("  %*d repos (%*d%%) that include the language: %s\n", len(strconv.Itoa(len(repos))), lang.count, 2, (lang.count*100)/len(repos), lang.name)
-					break
-				}
-			}
+			percentage := int(float64(langData.Count) / float64(len(repos)) * 100)
+			rows = append(rows, []string{langData.Language, fmt.Sprintf("%d", langData.Count), fmt.Sprintf("%d%%", percentage)})
 		}
+
+		pterm.DefaultTable.WithHasHeader(true).WithData(rows).Render()
 	}
 
-	return
+	return nil
+}
+
+func init() {
+	RootCmd.AddCommand(trendCmd)
+	trendCmd.Flags().String("org", "", "Organization name")
 }
