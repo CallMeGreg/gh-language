@@ -36,38 +36,26 @@ Display the count of each programming language used in repos across an enterpris
 gh language count --enterprise YOUR_ENTERPRISE_SLUG
 ```
 
-Optionally specify the organization limit (`--org-limit`), repo limit (`--repo-limit`) and the number of languages to return (`--top`)
-```
-gh language count --enterprise YOUR_ENTERPRISE_SLUG --org-limit 5 --repo-limit 100 --top 10
-```
-
-Optionally filter by a specific language (`--language`)
-```
-gh language count YOUR_ORG_NAME --language Java
-```
-> [!IMPORTANT]
-> The `--language` flag values are case-sensitive.
-
 ## Trend command
 
 Display the breakdown of programming languages used in repos across an enterprise or organization per year, based on the repo creation date.
 ```
-gh language trend --org YOUR_ORG_NAME
+gh language trend --enterprise YOUR_ENTERPRISE_SLUG
 ```
 
 ## Data command
 
 Analyze language data by bytes, rather than count, across repositories in an enterprise or organization.
 ```
-gh language data --org YOUR_ORG_NAME
+gh language data --enterprise YOUR_ENTERPRISE_SLUG
 ```
 
 Specify the unit for displaying data (`--unit`):
 ```
-gh language data --org YOUR_ORG_NAME --unit megabytes
+gh language data --enterprise YOUR_ENTERPRISE_SLUG --unit megabytes
 ```
 
-## Flags
+## Common Flags
 
 The following flags are available for all commands:
 - `--org` or `--enterprise`: Specify the organization or enterprise to analyze. These flags are mutually exclusive, and one of them is required.
@@ -75,6 +63,22 @@ The following flags are available for all commands:
 - `--repo-limit`: Limit the number of repositories to analyze per organization (default is 10).
 - `--top`: Return the top N languages (default is 10). This flag is ignored when a specific language is specified.
 - `--language`: Filter results by a specific programming language (case-sensitive).
+
+## Example Usage
+Analyze the top 20 languages used across all repositories in an enterprise:
+```
+gh language count --enterprise YOUR_ENTERPRISE_SLUG --org-limit 1000000 --repo-limit 1000000 --top 20
+```
+
+Analyze the trend of Rust usage in repositories across an organization, limited to the first 100 repositories:
+```
+gh language trend --org YOUR_ORG_SLUG --repo-limit 100 --language Rust
+```
+
+Analyze the top 5 languages, based on data size, in megabytes, used across all repositories in an organization:
+```
+gh language data --org YOUR_ORG_SLUG --repo-limit 1000000 --top 5 --unit megabytes
+```
 
 ## Help
 
