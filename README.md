@@ -2,7 +2,7 @@
 This is an extension to the `gh` command-line tool for analyzing the count of programming languages used in repositories across a GitHub organization. It retrieves a list of repositories and their associated languages, and then aggregates the data to produce a report of language frequency.
 
 > [!NOTE]
-> If you are looking to compare your language frequnecy against public trends, you can access quarterly data from 2020 onward [here](https://innovationgraph.github.com/global-metrics/programming-languages) as part of GitHub's [Innovation Graph](https://innovationgraph.github.com/) project.
+> If you are looking to compare your language frequency against public trends, you can access quarterly data from 2020 onward [here](https://innovationgraph.github.com/global-metrics/programming-languages) as part of GitHub's [Innovation Graph](https://innovationgraph.github.com/) project.
 
 # Pre-requisites
 1. Install the GitHub CLI: https://github.com/cli/cli#installation
@@ -131,18 +131,24 @@ All commands now support the `--enterprise` flag to analyze repositories across 
 Analyze the count of programming languages used across all organizations in an enterprise.
 ```
 gh language count --enterprise YOUR_ENTERPRISE_NAME
+> [!NOTE]
+> The `--enterprise` flag is mutually exclusive with the `--org` flag. You must specify one of them.
 ```
 
 ### Trend command
 Analyze the trend of programming languages used across all organizations in an enterprise.
 ```
 gh language trend --enterprise YOUR_ENTERPRISE_NAME
+> [!NOTE]
+> The `--enterprise` flag is mutually exclusive with the `--org` flag. You must specify one of them.
 ```
 
 ### Data command
 Analyze language data by bytes across all organizations in an enterprise.
 ```
 gh language data --enterprise YOUR_ENTERPRISE_NAME
+> [!NOTE]
+> The `--enterprise` flag is mutually exclusive with the `--org` flag. You must specify one of them.
 ```
 
 ## Help
@@ -166,7 +172,6 @@ Flags:
   -L, --language string   The language to filter on
   -l, --limit int         The maximum number of repositories to evaluate (default 100)
   -t, --top int           Return the top N languages (ignored when a language is specified) (default 10)
-  --codeql                 Filter for languages supported by CodeQL (C, C++, C#, Go, Java, Kotlin, JavaScript, Python, Ruby, Swift, TypeScript).
 
 Use "language [command] --help" for more information about a command.
 ```
