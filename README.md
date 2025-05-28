@@ -1,10 +1,12 @@
 # GitHub Language Analyzer
-This is an extension to the `gh` command-line tool for analyzing the count of programming languages used in repositories across a GitHub organization. It retrieves a list of repositories and their associated languages, and then aggregates the data to produce a report of language frequency.
+
+This is an extension to the `gh` command-line tool for analyzing the count of programming languages used in repositories across a GitHub enterprise or organization. It retrieves a list of repositories and their associated languages, and then aggregates the data to produce a report of language frequency.
 
 > [!NOTE]
 > If you are looking to compare your language frequency against public trends, you can access quarterly data from 2020 onward [here](https://innovationgraph.github.com/global-metrics/programming-languages) as part of GitHub's [Innovation Graph](https://innovationgraph.github.com/) project.
 
 # Pre-requisites
+
 1. Install the GitHub CLI: https://github.com/cli/cli#installation
 2. Confirm that you are authenticated with an account that has access to the org you would like to analyze:
 
@@ -12,7 +14,14 @@ This is an extension to the `gh` command-line tool for analyzing the count of pr
 gh auth status
 ```
 
+Ensure that you have the necessary scopes. For example, if you are analyzing an organization, you need `repo` scope and for enterprises you need the `read:enterprise` scope. You can add scopes by running:
+
+```
+gh auth login -s "repo,read:enterprise"
+```
+
 # Installation
+
 To install this extension, run the following command:
 ```
 gh extension install CallMeGreg/gh-language
@@ -21,57 +30,36 @@ gh extension install CallMeGreg/gh-language
 # Usage
 
 ## Count command
-Display the count of programming languages used in repos across an organization.
-```
-gh language count YOUR_ORG_NAME
-```
-<img width="514" alt="Screenshot 2024-04-23 at 11 17 09 AM" src="https://github.com/CallMeGreg/gh-language/assets/110078080/f4e4bac7-31f6-4cfd-a3e6-e6161b38feb7">
 
-Optionally specify the repo limit (`--limit`) and/or the number of languages to return (`--top`)
+Display the count of each programming language used in repos across an enterprise or organization.
 ```
-gh language count YOUR_ORG_NAME --limit 1000 --top 20
+gh language count --enterprise YOUR_ENTERPRISE_SLUG
+```
+
+Optionally specify the organization limit (`--org-limit`), repo limit (`--repo-limit`) and the number of languages to return (`--top`)
+```
+gh language count --enterprise YOUR_ENTERPRISE_SLUG --org-limit 5 --repo-limit 100 --top 10
 ```
 
 Optionally filter by a specific language (`--language`)
 ```
 gh language count YOUR_ORG_NAME --language Java
 ```
-> [!NOTE]
+> [!IMPORTANT]
 > The `--language` flag values are case-sensitive.
 
 ## Trend command
-Display the breakdown of programming languages used in repos across an organization per year, based on the repo creation date.
-```
-gh language trend YOUR_ORG_NAME
-```
-<img width="522" alt="Screenshot 2024-04-23 at 11 18 06 AM" src="https://github.com/CallMeGreg/gh-language/assets/110078080/dcba7dfb-6fae-4881-9e84-3be35016d99a">
 
-Optionally specify the repo limit (`--limit`) and/or the number of languages to return (`--top`)
+Display the breakdown of programming languages used in repos across an enterprise or organization per year, based on the repo creation date.
 ```
-gh language trend YOUR_ORG_NAME --limit 1000 --top 20
+gh language trend --org YOUR_ORG_NAME
 ```
-
-Optionally filter by a specific language (`--language`)
-```
-gh language trend YOUR_ORG_NAME --language Java
-```
-> [!NOTE]
-> The `--language` flag values are case-sensitive.
 
 ## Data command
-Analyze language data by bytes across repositories in an organization.
+
+Analyze language data by bytes, rather than count, across repositories in an enterprise or organization.
 ```
 gh language data --org YOUR_ORG_NAME
-```
-
-Optionally specify the repo limit (`--limit`) and/or the number of languages to return (`--top`):
-```
-gh language data --org YOUR_ORG_NAME --limit 1000 --top 5
-```
-
-Optionally filter by a specific language (`--language`):
-```
-gh language data --org YOUR_ORG_NAME --language Java
 ```
 
 Specify the unit for displaying data (`--unit`):
@@ -79,79 +67,17 @@ Specify the unit for displaying data (`--unit`):
 gh language data --org YOUR_ORG_NAME --unit megabytes
 ```
 
-> [!NOTE]
-> The `--language` flag values are case-sensitive.
+## Flags
 
-### Sorting Logic
-The `data` subcommand sorts language data in descending order by size (bytes). When the `--top` flag is used, only the top N languages are displayed.
-
-## Updated Flags
-
-### Repository Limit (`--repo-limit`)
-Limits the number of repositories analyzed per organization. Default is 100.
-
-### Organization Limit (`--org-limit`)
-Limits the number of organizations analyzed for an enterprise. Default is 100.
-
-### Count Command
-Analyze the count of programming languages used across repositories:
-```
-gh language count --org YOUR_ORG_NAME --repo-limit 50
-```
-Or across all organizations in an enterprise:
-```
-gh language count --enterprise YOUR_ENTERPRISE_NAME --org-limit 10 --repo-limit 50
-```
-
-### Trend Command
-Analyze the trend of programming languages used over time:
-```
-gh language trend --org YOUR_ORG_NAME --repo-limit 50
-```
-Or across all organizations in an enterprise:
-```
-gh language trend --enterprise YOUR_ENTERPRISE_NAME --org-limit 10 --repo-limit 50
-```
-
-### Data Command
-Analyze language data by bytes:
-```
-gh language data --org YOUR_ORG_NAME --repo-limit 50
-```
-Or across all organizations in an enterprise:
-```
-gh language data --enterprise YOUR_ENTERPRISE_NAME --org-limit 10 --repo-limit 50
-```
-
-## Enterprise Support
-
-All commands now support the `--enterprise` flag to analyze repositories across all organizations within a GitHub Enterprise account. The `--enterprise` flag is mutually exclusive with the `--org` flag, and one of them is required.
-
-### Count command
-Analyze the count of programming languages used across all organizations in an enterprise.
-```
-gh language count --enterprise YOUR_ENTERPRISE_NAME
-> [!NOTE]
-> The `--enterprise` flag is mutually exclusive with the `--org` flag. You must specify one of them.
-```
-
-### Trend command
-Analyze the trend of programming languages used across all organizations in an enterprise.
-```
-gh language trend --enterprise YOUR_ENTERPRISE_NAME
-> [!NOTE]
-> The `--enterprise` flag is mutually exclusive with the `--org` flag. You must specify one of them.
-```
-
-### Data command
-Analyze language data by bytes across all organizations in an enterprise.
-```
-gh language data --enterprise YOUR_ENTERPRISE_NAME
-> [!NOTE]
-> The `--enterprise` flag is mutually exclusive with the `--org` flag. You must specify one of them.
-```
+The following flags are available for all commands:
+- `--org` or `--enterprise`: Specify the organization or enterprise to analyze. These flags are mutually exclusive, and one of them is required.
+- `--org-limit`: Limit the number of organizations to analyze (default is 5).
+- `--repo-limit`: Limit the number of repositories to analyze per organization (default is 10).
+- `--top`: Return the top N languages (default is 10). This flag is ignored when a specific language is specified.
+- `--language`: Filter results by a specific programming language (case-sensitive).
 
 ## Help
+
 For help, run:
 ```
 gh language -h

@@ -164,7 +164,6 @@ func runCount(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
-	RootCmd.AddCommand(countCmd)
 	countCmd.Flags().String("org", "", "Organization name")
 	countCmd.Flags().String("enterprise", "", "Enterprise name")
 	countCmd.Flags().Int("repo-limit", 10, "The maximum number of repositories to evaluate per organization")

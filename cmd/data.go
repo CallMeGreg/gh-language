@@ -184,7 +184,6 @@ func runData(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
-	RootCmd.AddCommand(dataCmd)
 	dataCmd.Flags().String("org", "", "Organization name")
 	dataCmd.Flags().String("enterprise", "", "Enterprise name")
 	dataCmd.Flags().String("unit", "megabytes", "Unit to display language data (options: bytes, kilobytes, megabytes, gigabytes)")

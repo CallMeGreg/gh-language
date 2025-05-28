@@ -141,11 +141,9 @@ func runTrend(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
-	RootCmd.AddCommand(trendCmd)
 	trendCmd.Flags().String("org", "", "Organization name")
 	trendCmd.Flags().String("enterprise", "", "Enterprise name")
 	trendCmd.Flags().Int("repo-limit", 10, "The maximum number of repositories to evaluate per organization")
 	trendCmd.Flags().Int("org-limit", 5, "The maximum number of organizations to evaluate for an enterprise")
 	trendCmd.MarkFlagsMutuallyExclusive("org", "enterprise")
-	trendCmd.Flags().Bool("codeql", false, "Filter for CodeQL-supported languages")
 }
