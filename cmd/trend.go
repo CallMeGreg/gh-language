@@ -22,11 +22,12 @@ var trendCmd = &cobra.Command{
 }
 
 func runTrend(cmd *cobra.Command, args []string) error {
-	org, _ := cmd.Flags().GetString("org")
-	enterprise, _ := cmd.Flags().GetString("enterprise")
-	repoLimit, _ := cmd.Flags().GetInt("repo-limit")
-	orgLimit, _ := cmd.Flags().GetInt("org-limit")
-	top := top_flag // Reuse the root command flag for top
+	org := org_flag
+	enterprise := enterprise_flag
+	repoLimit := repo_limit_flag
+	orgLimit := org_limit_flag
+	top := top_flag
+	language := language_flag
 
 	if org == "" && enterprise == "" {
 		return fmt.Errorf("either --org or --enterprise flag is required")
@@ -115,6 +116,9 @@ func runTrend(cmd *cobra.Command, args []string) error {
 		}, 0, len(languageMapPerYear[year]))
 
 		for lang, count := range languageMapPerYear[year] {
+			if language != "" && lang != language {
+				continue
+			}
 			sortedLanguages = append(sortedLanguages, struct {
 				Language string
 				Count    int
@@ -138,12 +142,4 @@ func runTrend(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
-}
-
-func init() {
-	trendCmd.Flags().String("org", "", "Organization name")
-	trendCmd.Flags().String("enterprise", "", "Enterprise name")
-	trendCmd.Flags().Int("repo-limit", 10, "The maximum number of repositories to evaluate per organization")
-	trendCmd.Flags().Int("org-limit", 5, "The maximum number of organizations to evaluate for an enterprise")
-	trendCmd.MarkFlagsMutuallyExclusive("org", "enterprise")
 }

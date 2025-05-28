@@ -18,17 +18,19 @@ type LanguageData struct {
 var dataCmd = &cobra.Command{
 	Use:   "data",
 	Short: "Analyze language data by bytes",
-	RunE:  runData,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runData(cmd, args)
+	},
 }
 
 func runData(cmd *cobra.Command, args []string) error {
-	org, _ := cmd.Flags().GetString("org")
-	enterprise, _ := cmd.Flags().GetString("enterprise")
+	org := org_flag
+	enterprise := enterprise_flag
+	repoLimit := repo_limit_flag
+	orgLimit := org_limit_flag
+	top := top_flag
+	language := language_flag
 	unit, _ := cmd.Flags().GetString("unit")
-	repoLimit, _ := cmd.Flags().GetInt("repo-limit")
-	orgLimit, _ := cmd.Flags().GetInt("org-limit")
-	top := top_flag           // Reuse the root command flag for top
-	language := language_flag // Reuse the root command flag for language
 
 	if org == "" && enterprise == "" {
 		return fmt.Errorf("either --org or --enterprise flag is required")
@@ -184,10 +186,5 @@ func runData(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
-	dataCmd.Flags().String("org", "", "Organization name")
-	dataCmd.Flags().String("enterprise", "", "Enterprise name")
-	dataCmd.Flags().String("unit", "megabytes", "Unit to display language data (options: bytes, kilobytes, megabytes, gigabytes)")
-	dataCmd.Flags().Int("repo-limit", 10, "The maximum number of repositories to evaluate per organization")
-	dataCmd.Flags().Int("org-limit", 5, "The maximum number of organizations to evaluate for an enterprise")
-	dataCmd.MarkFlagsMutuallyExclusive("org", "enterprise")
+	dataCmd.Flags().String("unit", "bytes", "Specify the unit for language data (bytes, kilobytes, megabytes, gigabytes)")
 }

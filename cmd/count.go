@@ -19,12 +19,12 @@ var countCmd = &cobra.Command{
 }
 
 func runCount(cmd *cobra.Command, args []string) error {
-	org, _ := cmd.Flags().GetString("org")
-	enterprise, _ := cmd.Flags().GetString("enterprise")
-	repoLimit, _ := cmd.Flags().GetInt("repo-limit")
-	orgLimit, _ := cmd.Flags().GetInt("org-limit")
-	top := top_flag           // Reuse the root command flag for top
-	language := language_flag // Reuse the root command flag for language
+	org := org_flag
+	enterprise := enterprise_flag
+	repoLimit := repo_limit_flag
+	orgLimit := org_limit_flag
+	top := top_flag
+	language := language_flag
 
 	if org == "" && enterprise == "" {
 		return fmt.Errorf("either --org or --enterprise flag is required")
@@ -161,12 +161,4 @@ func runCount(cmd *cobra.Command, args []string) error {
 	}()).Render()
 
 	return nil
-}
-
-func init() {
-	countCmd.Flags().String("org", "", "Organization name")
-	countCmd.Flags().String("enterprise", "", "Enterprise name")
-	countCmd.Flags().Int("repo-limit", 10, "The maximum number of repositories to evaluate per organization")
-	countCmd.Flags().Int("org-limit", 5, "The maximum number of organizations to evaluate for an enterprise")
-	countCmd.MarkFlagsMutuallyExclusive("org", "enterprise")
 }

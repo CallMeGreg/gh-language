@@ -89,15 +89,18 @@ Usage:
 
 Available Commands:
   count       Analyze the count of programming languages used in repos across an organization
-  data        Analyze language data by bytes for a specific repository
+  data        Analyze language data by bytes
   help        Help about any command
   trend       Analyze the trend of programming languages used in repos across an organization over time
 
 Flags:
-  -h, --help              help for language
-  -L, --language string   The language to filter on
-  -l, --limit int         The maximum number of repositories to evaluate (default 100)
-  -t, --top int           Return the top N languages (ignored when a language is specified) (default 10)
+  -e, --enterprise string   Specify the enterprise
+  -h, --help                help for language
+  -l, --language string     The language to filter on (case-sensitive)
+  -o, --org string          Specify the organization
+      --org-limit int       The maximum number of organizations to evaluate for an enterprise (default 5)
+      --repo-limit int      The maximum number of repositories to evaluate per organization (default 10)
+  -t, --top int             Return the top N languages (ignored when a language is specified) (default 10)
 
 Use "language [command] --help" for more information about a command.
 ```

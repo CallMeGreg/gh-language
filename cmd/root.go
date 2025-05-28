@@ -7,7 +7,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var limit_flag int
+var enterprise_flag string
+var org_flag string
+var org_limit_flag int
+var repo_limit_flag int
 var top_flag int
 var language_flag string
 
@@ -19,10 +22,14 @@ var RootCmd = &cobra.Command{
 func _root() error {
 	RootCmd.CompletionOptions.DisableDefaultCmd = true
 
-	RootCmd.PersistentFlags().IntVarP(&limit_flag, "limit", "l", 100, "The maximum number of repositories to evaluate")
+	RootCmd.PersistentFlags().StringVarP(&enterprise_flag, "enterprise", "e", "", "Specify the enterprise")
+	RootCmd.PersistentFlags().StringVarP(&org_flag, "org", "o", "", "Specify the organization")
+	RootCmd.PersistentFlags().IntVar(&org_limit_flag, "org-limit", 5, "The maximum number of organizations to evaluate for an enterprise")
+	RootCmd.PersistentFlags().IntVar(&repo_limit_flag, "repo-limit", 10, "The maximum number of repositories to evaluate per organization")
 	RootCmd.PersistentFlags().IntVarP(&top_flag, "top", "t", 10, "Return the top N languages (ignored when a language is specified)")
-	RootCmd.PersistentFlags().StringVarP(&language_flag, "language", "L", "", "The language to filter on")
+	RootCmd.PersistentFlags().StringVarP(&language_flag, "language", "l", "", "The language to filter on (case-sensitive)")
 
+	RootCmd.MarkFlagsMutuallyExclusive("enterprise", "org")
 	RootCmd.MarkFlagsMutuallyExclusive("top", "language")
 
 	RootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) (err error) {
