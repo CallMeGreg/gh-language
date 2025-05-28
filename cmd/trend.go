@@ -51,17 +51,27 @@ func runTrend(cmd *cobra.Command, args []string) error {
 	var totalRepos int
 
 	for _, org := range orgs {
-		spinnerInfo, _ := pterm.DefaultSpinner.Start(fmt.Sprintf("Processing organization: %s", org))
+		spinnerInfo, _ := pterm.DefaultSpinner.Start(fmt.Sprintf("Indexing organization: %s", org))
+
 		repos, err := FetchRepositories(org, repoLimit)
 		if err != nil {
-			spinnerInfo.Fail("Failed to process organization")
+			spinnerInfo.Fail("Failed to index organization")
 			return err
 		}
-		spinnerInfo.Success(fmt.Sprintf("Successfully processed organization: %s", org))
+
+		if len(repos) == 0 {
+			spinnerInfo.Warning(fmt.Sprintf("No repositories found for organization: %s", org))
+			continue
+		}
+
+		spinnerInfo.Success(fmt.Sprintf("Successfully indexed organization: %s", org))
+		progressBar, _ := pterm.DefaultProgressbar.WithTotal(len(repos)).WithTitle("Analyzing repositories").Start()
 
 		totalRepos += len(repos)
 
 		for _, repo := range repos {
+			progressBar.Increment()
+
 			output, _, err := gh.Exec("api", fmt.Sprintf("repos/%s/%s/languages", org, repo.Name))
 			if err != nil {
 				pterm.Warning.Println(fmt.Sprintf("Skipping repository %s due to error: %s", repo.Name, err))
@@ -78,6 +88,8 @@ func runTrend(cmd *cobra.Command, args []string) error {
 				languageMapPerYear[time.Now().Year()][lang]++
 			}
 		}
+
+		progressBar.Stop()
 	}
 
 	// Extract the keys (years) into a slice
@@ -135,4 +147,5 @@ func init() {
 	trendCmd.Flags().Int("repo-limit", 10, "The maximum number of repositories to evaluate per organization")
 	trendCmd.Flags().Int("org-limit", 5, "The maximum number of organizations to evaluate for an enterprise")
 	trendCmd.MarkFlagsMutuallyExclusive("org", "enterprise")
+	trendCmd.Flags().Bool("codeql", false, "Filter for CodeQL-supported languages")
 }

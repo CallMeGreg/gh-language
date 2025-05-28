@@ -166,6 +166,7 @@ Flags:
   -L, --language string   The language to filter on
   -l, --limit int         The maximum number of repositories to evaluate (default 100)
   -t, --top int           Return the top N languages (ignored when a language is specified) (default 10)
+  --codeql                 Filter for languages supported by CodeQL (C, C++, C#, Go, Java, Kotlin, JavaScript, Python, Ruby, Swift, TypeScript).
 
 Use "language [command] --help" for more information about a command.
 ```
