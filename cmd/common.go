@@ -49,3 +49,50 @@ func ShowProgressBar(total int, title string) {
 	progressBar.Increment()
 	progressBar.Stop()
 }
+
+// FetchOrganizations fetches organizations for a given enterprise using the GitHub GraphQL API.
+func FetchOrganizations(enterprise string, orgLimit int) ([]string, error) {
+	if enterprise == "" {
+		return nil, fmt.Errorf("--enterprise flag is required")
+	}
+
+	query := `{
+		enterprise(slug: "` + enterprise + `") {
+			organizations(first: ` + fmt.Sprintf("%d", orgLimit) + `) {
+				nodes {
+					login
+				}
+			}
+		}
+	}`
+
+	response, _, err := gh.Exec("api", "graphql", "-f", "query="+query)
+	if err != nil {
+		pterm.Error.Println("Failed to fetch organizations for enterprise:", err)
+		return nil, err
+	}
+
+	var result struct {
+		Data struct {
+			Enterprise struct {
+				Organizations struct {
+					Nodes []struct {
+						Login string `json:"login"`
+					}
+				} `json:"organizations"`
+			} `json:"enterprise"`
+		} `json:"data"`
+	}
+
+	if err := json.Unmarshal(response.Bytes(), &result); err != nil {
+		pterm.Error.Println("Failed to parse organizations data:", err)
+		return nil, err
+	}
+
+	var orgs []string
+	for _, org := range result.Data.Enterprise.Organizations.Nodes {
+		orgs = append(orgs, org.Login)
+	}
+
+	return orgs, nil
+}

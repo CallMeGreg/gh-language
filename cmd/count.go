@@ -20,56 +20,65 @@ var countCmd = &cobra.Command{
 
 func runCount(cmd *cobra.Command, args []string) error {
 	org, _ := cmd.Flags().GetString("org")
-	limit := limit_flag       // Reuse the root command flag for limit
+	enterprise, _ := cmd.Flags().GetString("enterprise")
+	repoLimit, _ := cmd.Flags().GetInt("repo-limit")
+	orgLimit, _ := cmd.Flags().GetInt("org-limit")
 	top := top_flag           // Reuse the root command flag for top
 	language := language_flag // Reuse the root command flag for language
 
-	if org == "" {
-		return fmt.Errorf("--org flag is required")
+	if org == "" && enterprise == "" {
+		return fmt.Errorf("either --org or --enterprise flag is required")
 	}
 
-	pterm.DefaultSection.Println(fmt.Sprintf("Fetching repositories for organization: %s", org))
+	var orgs []string
 
-	repos, err := FetchRepositories(org, limit)
-	if err != nil {
-		return err
-	}
-
-	if len(repos) > limit {
-		ShowProgressBar(limit, "Fetching repositories")
-	}
-
-	// Respect the --limit flag
-	if limit > 0 && limit < len(repos) {
-		repos = repos[:limit]
+	if enterprise != "" {
+		pterm.Info.Println(fmt.Sprintf("Organization limit: %d, Repository limit: %d, Top languages limit: %d", orgLimit, repoLimit, top))
+		pterm.Info.Println(fmt.Sprintf("Indexing organizations for enterprise: %s", enterprise))
+		var err error
+		orgs, err = FetchOrganizations(enterprise, orgLimit)
+		if err != nil {
+			return err
+		}
+	} else {
+		pterm.Info.Println(fmt.Sprintf("Repository limit: %d, Top languages limit: %d", repoLimit, top))
+		orgs = []string{org}
 	}
 
 	languageData := make(map[string]int)
 
-	progressBar, _ := pterm.DefaultProgressbar.WithTotal(len(repos)).WithTitle("Processing repositories").Start()
+	var totalRepos int
 
-	for _, repo := range repos {
-		progressBar.UpdateTitle("Fetching language data for repositories...")
-		progressBar.Increment()
+	for _, org := range orgs {
+		spinnerInfo, _ := pterm.DefaultSpinner.Start(fmt.Sprintf("Processing organization: %s", org))
 
-		output, _, err := gh.Exec("api", fmt.Sprintf("repos/%s/%s/languages", org, repo.Name))
+		repos, err := FetchRepositories(org, repoLimit)
 		if err != nil {
-			pterm.Warning.Println(fmt.Sprintf("Skipping repository %s due to error: %s", repo.Name, err))
-			continue
+			spinnerInfo.Fail("Failed to process organization")
+			return err
 		}
+		spinnerInfo.Success(fmt.Sprintf("Successfully processed organization: %s", org))
 
-		var repoLanguages map[string]int
-		if err := json.Unmarshal(output.Bytes(), &repoLanguages); err != nil {
-			pterm.Warning.Println(fmt.Sprintf("Skipping repository %s due to parsing error: %s", repo.Name, err))
-			continue
-		}
+		totalRepos += len(repos)
 
-		for lang := range repoLanguages {
-			languageData[lang]++
+		for _, repo := range repos {
+			output, _, err := gh.Exec("api", fmt.Sprintf("repos/%s/%s/languages", org, repo.Name))
+			if err != nil {
+				pterm.Warning.Println(fmt.Sprintf("Skipping repository %s due to error: %s", repo.Name, err))
+				continue
+			}
+
+			var repoLanguages map[string]int
+			if err := json.Unmarshal(output.Bytes(), &repoLanguages); err != nil {
+				pterm.Warning.Println(fmt.Sprintf("Skipping repository %s due to parsing error: %s", repo.Name, err))
+				continue
+			}
+
+			for lang := range repoLanguages {
+				languageData[lang]++
+			}
 		}
 	}
-
-	progressBar.Stop()
 
 	// Filter by specific language if --language flag is set
 	if language != "" {
@@ -108,6 +117,7 @@ func runCount(cmd *cobra.Command, args []string) error {
 		languageData = topLanguages
 	}
 
+	// Update percentage calculation
 	pterm.DefaultTable.WithHasHeader(true).WithData(func() [][]string {
 		rows := [][]string{{"Language", "Count", "Percentage"}}
 
@@ -128,7 +138,7 @@ func runCount(cmd *cobra.Command, args []string) error {
 		})
 
 		for _, langData := range sortedLanguages {
-			percentage := int(float64(langData.Count) / float64(len(repos)) * 100)
+			percentage := int(float64(langData.Count) / float64(totalRepos) * 100)
 			rows = append(rows, []string{langData.Language, fmt.Sprintf("%d", langData.Count), fmt.Sprintf("%d%%", percentage)})
 		}
 
@@ -141,4 +151,8 @@ func runCount(cmd *cobra.Command, args []string) error {
 func init() {
 	RootCmd.AddCommand(countCmd)
 	countCmd.Flags().String("org", "", "Organization name")
+	countCmd.Flags().String("enterprise", "", "Enterprise name")
+	countCmd.Flags().Int("repo-limit", 10, "The maximum number of repositories to evaluate per organization")
+	countCmd.Flags().Int("org-limit", 5, "The maximum number of organizations to evaluate for an enterprise")
+	countCmd.MarkFlagsMutuallyExclusive("org", "enterprise")
 }

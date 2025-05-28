@@ -23,52 +23,69 @@ var dataCmd = &cobra.Command{
 
 func runData(cmd *cobra.Command, args []string) error {
 	org, _ := cmd.Flags().GetString("org")
+	enterprise, _ := cmd.Flags().GetString("enterprise")
 	unit, _ := cmd.Flags().GetString("unit")
-	limit := limit_flag       // Reuse the root command flag for limit
+	repoLimit, _ := cmd.Flags().GetInt("repo-limit")
+	orgLimit, _ := cmd.Flags().GetInt("org-limit")
 	top := top_flag           // Reuse the root command flag for top
 	language := language_flag // Reuse the root command flag for language
 
-	if org == "" {
-		return fmt.Errorf("--org flag is required")
+	if org == "" && enterprise == "" {
+		return fmt.Errorf("either --org or --enterprise flag is required")
 	}
 
 	if unit != "bytes" && unit != "kilobytes" && unit != "megabytes" && unit != "gigabytes" {
 		return fmt.Errorf("invalid unit specified. Options are: bytes, kilobytes, megabytes, gigabytes")
 	}
 
-	pterm.DefaultSection.Println(fmt.Sprintf("Fetching repositories for organization: %s", org))
+	var orgs []string
 
-	repos, err := FetchRepositories(org, limit)
-	if err != nil {
-		return err
+	pterm.Info.Println(fmt.Sprintf("Organization limit: %d, Repository limit: %d, Top languages limit: %d", orgLimit, repoLimit, top))
+
+	if enterprise != "" {
+		pterm.Info.Println(fmt.Sprintf("Indexing organizations for enterprise: %s", enterprise))
+		var err error
+		orgs, err = FetchOrganizations(enterprise, orgLimit)
+		if err != nil {
+			return err
+		}
+	} else {
+		orgs = []string{org}
 	}
 
 	languageData := make(map[string]int)
+	var totalRepos int
 
-	progressBar, _ := pterm.DefaultProgressbar.WithTotal(len(repos)).WithTitle("Processing repositories").Start()
+	for _, org := range orgs {
+		spinnerInfo, _ := pterm.DefaultSpinner.Start(fmt.Sprintf("Processing organization: %s", org))
 
-	for _, repo := range repos {
-		progressBar.UpdateTitle("Fetching language data for repositories...")
-		progressBar.Increment()
-
-		output, _, err := gh.Exec("api", fmt.Sprintf("repos/%s/%s/languages", org, repo.Name))
+		repos, err := FetchRepositories(org, repoLimit)
 		if err != nil {
-			pterm.Warning.Println(fmt.Sprintf("Skipping repository %s due to error: %s", repo.Name, err))
-			continue
+			spinnerInfo.Fail("Failed to process organization")
+			return err
 		}
+		spinnerInfo.Success(fmt.Sprintf("Successfully processed organization: %s", org))
 
-		var repoLanguages map[string]int
-		if err := json.Unmarshal(output.Bytes(), &repoLanguages); err != nil {
-			pterm.Warning.Println(fmt.Sprintf("Skipping repository %s due to parsing error: %s", repo.Name, err))
-			continue
-		}
+		for _, repo := range repos {
+			output, _, err := gh.Exec("api", fmt.Sprintf("repos/%s/%s/languages", org, repo.Name))
+			if err != nil {
+				pterm.Warning.Println(fmt.Sprintf("Skipping repository %s due to error: %s", repo.Name, err))
+				continue
+			}
 
-		for lang, bytes := range repoLanguages {
-			languageData[lang] += bytes
+			var repoLanguages map[string]int
+			if err := json.Unmarshal(output.Bytes(), &repoLanguages); err != nil {
+				pterm.Warning.Println(fmt.Sprintf("Skipping repository %s due to parsing error: %s", repo.Name, err))
+				continue
+			}
+
+			for lang, bytes := range repoLanguages {
+				if bytes > 0 {
+					languageData[lang]++
+				}
+			}
 		}
 	}
-
-	progressBar.Stop()
 
 	// Filter by specific language if --language flag is set
 	if language != "" {
@@ -143,7 +160,7 @@ func runData(cmd *cobra.Command, args []string) error {
 		})
 
 		for _, langData := range sortedLanguages {
-			percentage := int(float64(languageData[langData.Language]) / float64(totalBytes) * 100)
+			percentage := int(float64(languageData[langData.Language]) / float64(totalRepos) * 100)
 			rows = append(rows, []string{langData.Language, fmt.Sprintf("%.2f", langData.Value), fmt.Sprintf("%d%%", percentage)})
 		}
 
@@ -156,5 +173,9 @@ func runData(cmd *cobra.Command, args []string) error {
 func init() {
 	RootCmd.AddCommand(dataCmd)
 	dataCmd.Flags().String("org", "", "Organization name")
+	dataCmd.Flags().String("enterprise", "", "Enterprise name")
 	dataCmd.Flags().String("unit", "megabytes", "Unit to display language data (options: bytes, kilobytes, megabytes, gigabytes)")
+	dataCmd.Flags().Int("repo-limit", 10, "The maximum number of repositories to evaluate per organization")
+	dataCmd.Flags().Int("org-limit", 5, "The maximum number of organizations to evaluate for an enterprise")
+	dataCmd.MarkFlagsMutuallyExclusive("org", "enterprise")
 }

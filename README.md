@@ -85,6 +85,66 @@ gh language data --org YOUR_ORG_NAME --unit megabytes
 ### Sorting Logic
 The `data` subcommand sorts language data in descending order by size (bytes). When the `--top` flag is used, only the top N languages are displayed.
 
+## Updated Flags
+
+### Repository Limit (`--repo-limit`)
+Limits the number of repositories analyzed per organization. Default is 100.
+
+### Organization Limit (`--org-limit`)
+Limits the number of organizations analyzed for an enterprise. Default is 100.
+
+### Count Command
+Analyze the count of programming languages used across repositories:
+```
+gh language count --org YOUR_ORG_NAME --repo-limit 50
+```
+Or across all organizations in an enterprise:
+```
+gh language count --enterprise YOUR_ENTERPRISE_NAME --org-limit 10 --repo-limit 50
+```
+
+### Trend Command
+Analyze the trend of programming languages used over time:
+```
+gh language trend --org YOUR_ORG_NAME --repo-limit 50
+```
+Or across all organizations in an enterprise:
+```
+gh language trend --enterprise YOUR_ENTERPRISE_NAME --org-limit 10 --repo-limit 50
+```
+
+### Data Command
+Analyze language data by bytes:
+```
+gh language data --org YOUR_ORG_NAME --repo-limit 50
+```
+Or across all organizations in an enterprise:
+```
+gh language data --enterprise YOUR_ENTERPRISE_NAME --org-limit 10 --repo-limit 50
+```
+
+## Enterprise Support
+
+All commands now support the `--enterprise` flag to analyze repositories across all organizations within a GitHub Enterprise account. The `--enterprise` flag is mutually exclusive with the `--org` flag, and one of them is required.
+
+### Count command
+Analyze the count of programming languages used across all organizations in an enterprise.
+```
+gh language count --enterprise YOUR_ENTERPRISE_NAME
+```
+
+### Trend command
+Analyze the trend of programming languages used across all organizations in an enterprise.
+```
+gh language trend --enterprise YOUR_ENTERPRISE_NAME
+```
+
+### Data command
+Analyze language data by bytes across all organizations in an enterprise.
+```
+gh language data --enterprise YOUR_ENTERPRISE_NAME
+```
+
 ## Help
 For help, run:
 ```
