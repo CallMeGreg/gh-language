@@ -3,8 +3,13 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"regexp"
+	"strconv"
+	"time"
 
 	"github.com/cli/go-gh/v2"
+	"github.com/cli/go-gh/v2/pkg/api"
 	"github.com/pterm/pterm"
 )
 
@@ -22,25 +27,81 @@ func FetchRepositories(org string, limit int) ([]struct {
 	CreatedAt string `json:"created_at"`
 }, error) {
 	if org == "" {
-		return nil, fmt.Errorf("--org flag is required")
+		return nil, fmt.Errorf("no organization identified, please ensure you have access to the organization or enterprise provided")
 	}
 
-	reposOutput, _, err := gh.Exec("api", fmt.Sprintf("orgs/%s/repos?per_page=%d", org, limit))
+	client, err := api.DefaultRESTClient()
 	if err != nil {
-		pterm.Error.Println("Failed to fetch repositories:", err)
+		pterm.Error.Println("Failed to create REST client:", err)
 		return nil, err
 	}
 
-	var repos []struct {
+	var allRepos []struct {
 		Name      string `json:"name"`
 		CreatedAt string `json:"created_at"`
 	}
-	if err := json.Unmarshal(reposOutput.Bytes(), &repos); err != nil {
-		pterm.Error.Println("Failed to parse repositories data:", err)
-		return nil, err
+
+	requestPath := fmt.Sprintf("orgs/%s/repos?per_page=100", org)
+	fetched := 0
+
+	for {
+		response, err := client.Request(http.MethodGet, requestPath, nil)
+		if err != nil {
+			pterm.Error.Println("Failed to fetch repositories:", err)
+			return nil, err
+		}
+
+		// Check rate limit headers
+		remaining := response.Header.Get("X-RateLimit-Remaining")
+		reset := response.Header.Get("X-RateLimit-Reset")
+		if remaining == "0" {
+			resetTime, _ := strconv.Atoi(reset)
+			waitDuration := time.Until(time.Unix(int64(resetTime), 0))
+			pterm.Warning.Printf("Rate limit exceeded. Waiting for %v...\n", waitDuration)
+			time.Sleep(waitDuration)
+			continue
+		}
+
+		var repos []struct {
+			Name      string `json:"name"`
+			CreatedAt string `json:"created_at"`
+		}
+		if err := json.NewDecoder(response.Body).Decode(&repos); err != nil {
+			pterm.Error.Println("Failed to parse repositories data:", err)
+			return nil, err
+		}
+		response.Body.Close()
+
+		allRepos = append(allRepos, repos...)
+		fetched += len(repos)
+		if fetched >= limit || len(repos) == 0 {
+			break
+		}
+
+		// Find next page URL from Link header
+		linkHeader := response.Header.Get("Link")
+		nextPageURL := findNextPage(linkHeader)
+		if nextPageURL == "" {
+			break
+		}
+		requestPath = nextPageURL
 	}
 
-	return repos, nil
+	if len(allRepos) > limit {
+		allRepos = allRepos[:limit]
+	}
+
+	return allRepos, nil
+}
+
+// findNextPage extracts the next page URL from the Link header.
+func findNextPage(linkHeader string) string {
+	var linkRE = regexp.MustCompile(`<([^>]+)>;\s*rel="next"`)
+	matches := linkRE.FindStringSubmatch(linkHeader)
+	if len(matches) > 1 {
+		return matches[1]
+	}
+	return ""
 }
 
 // ShowProgressBar displays a progress bar.
