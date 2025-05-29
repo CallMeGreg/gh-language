@@ -6,7 +6,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/cli/go-gh"
+	"github.com/cli/go-gh/v2"
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 )

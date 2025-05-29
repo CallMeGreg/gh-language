@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/cli/go-gh"
+	"github.com/cli/go-gh/v2"
 	"github.com/pterm/pterm"
 )
 
