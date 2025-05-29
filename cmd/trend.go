@@ -29,58 +29,77 @@ func runTrend(cmd *cobra.Command, args []string) error {
 	top := top_flag
 	language := language_flag
 
-	if org == "" && enterprise == "" {
-		return fmt.Errorf("either --org or --enterprise flag is required")
+	if err := ValidateFlags(org, enterprise); err != nil {
+		return err
 	}
 
 	var orgs []string
-	pterm.Info.Println(fmt.Sprintf("Organization limit: %d, Repository limit: %d, Top languages limit: %d", orgLimit, repoLimit, top))
 
 	if enterprise != "" {
-		pterm.Info.Println(fmt.Sprintf("Indexing organizations for enterprise: %s", enterprise))
+		// Determine the language filter or top languages info based on flags.
+		languageFilter := GetLanguageFilter(codeql_flag, language, top)
+		// Print organization and repository limits along with the language filter.
+		PrintInfoWithFormat("Organization limit: %d, Repository limit: %d, %s", orgLimit, repoLimit, languageFilter)
+		PrintIndexingEnterprise(enterprise)
 		var err error
 		orgs, err = FetchOrganizations(enterprise, orgLimit)
 		if err != nil {
 			return err
 		}
 	} else {
+		// Handle the case where only a single organization is provided.
+		topLanguagesInfo := GetLanguageFilter(codeql_flag, language, top)
+		PrintInfoWithFormat("Repository limit: %d, %s", repoLimit, topLanguagesInfo)
 		orgs = []string{org}
 	}
 
+	// Initialize a map to store language data per year.
 	languageMapPerYear := make(map[int]map[string]int)
 
 	var totalRepos int
 
+	// Iterate over each organization to fetch repositories and analyze languages.
 	for _, org := range orgs {
+		// Start a spinner to indicate progress for indexing the organization.
 		spinnerInfo, _ := pterm.DefaultSpinner.Start(fmt.Sprintf("Indexing organization: %s", org))
 
+		// Fetch repositories for the organization. This involves a REST API call to GitHub.
 		repos, err := FetchRepositories(org, repoLimit)
 		if err != nil {
+			// Stop the spinner and indicate failure if an error occurs.
 			spinnerInfo.Fail("Failed to index organization")
 			return err
 		}
 
 		if len(repos) == 0 {
+			// Stop the spinner and indicate a warning if no repositories are found.
 			spinnerInfo.Warning(fmt.Sprintf("No repositories found for organization: %s", org))
 			continue
 		}
 
+		// Stop the spinner and indicate success.
 		spinnerInfo.Success(fmt.Sprintf("Successfully indexed organization: %s", org))
+		// Start a progress bar for analyzing repositories.
 		progressBar, _ := pterm.DefaultProgressbar.WithTotal(len(repos)).WithTitle("Analyzing repositories").Start()
 
+		// Increment the total repository count.
 		totalRepos += len(repos)
 
+		// Analyze each repository for language usage and group by year.
 		for _, repo := range repos {
 			progressBar.Increment()
-
+			// Fetch language data for the repository. This involves another REST API call to GitHub.
 			output, _, err := gh.Exec("api", fmt.Sprintf("repos/%s/%s/languages", org, repo.Name))
 			if err != nil {
+				// Print a warning and skip the repository if an error occurs.
 				pterm.Warning.Println(fmt.Sprintf("Skipping repository %s due to error: %s", repo.Name, err))
 				continue
 			}
 
+			// Parse the language data from the API response. This step can fail if the response format changes.
 			var repoLanguages map[string]int
 			if err := json.Unmarshal(output.Bytes(), &repoLanguages); err != nil {
+				// Print a warning and skip the repository if parsing fails.
 				pterm.Warning.Println(fmt.Sprintf("Skipping repository %s due to parsing error: %s", repo.Name, err))
 				continue
 			}
@@ -92,6 +111,7 @@ func runTrend(cmd *cobra.Command, args []string) error {
 				continue
 			}
 
+			// Group the language data by year. This requires extracting the year from the repository's creation date.
 			creationYear := createdAt.Year()
 			if languageMapPerYear[creationYear] == nil {
 				languageMapPerYear[creationYear] = make(map[string]int)
@@ -102,21 +122,33 @@ func runTrend(cmd *cobra.Command, args []string) error {
 			}
 		}
 
+		// Stop the progress bar after analyzing all repositories.
 		progressBar.Stop()
 	}
 
-	// Extract the keys (years) into a slice
+	// Print the total number of repositories analyzed.
+	pterm.Println() // Add a new line
+	pterm.Info.Println(fmt.Sprintf("Total number of repositories analyzed: %d", totalRepos))
+	pterm.Println() // Add a new line
+
+	// Extract the keys (years) into a slice for sorting.
 	years := make([]int, 0, len(languageMapPerYear))
 	for year := range languageMapPerYear {
 		years = append(years, year)
 	}
 
-	// Sort the slice in ascending order
+	// Sort the slice in ascending order.
 	sort.Ints(years)
 
 	// Reverse the slice to get it in descending order
 	for i, j := 0, len(years)-1; i < j; i, j = i+1, j-1 {
 		years[i], years[j] = years[j], years[i]
+	}
+
+	if codeql_flag {
+		for year, langMap := range languageMapPerYear {
+			languageMapPerYear[year] = IsCodeQLLanguage(langMap)
+		}
 	}
 
 	// Update percentage calculation

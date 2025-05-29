@@ -13,6 +13,7 @@ var org_limit_flag int
 var repo_limit_flag int
 var top_flag int
 var language_flag string
+var codeql_flag bool
 
 var RootCmd = &cobra.Command{
 	Use:   "language <subcommand> [flags]",
@@ -28,13 +29,10 @@ func _root() error {
 	RootCmd.PersistentFlags().IntVar(&repo_limit_flag, "repo-limit", 10, "The maximum number of repositories to evaluate per organization")
 	RootCmd.PersistentFlags().IntVarP(&top_flag, "top", "t", 10, "Return the top N languages (ignored when a language is specified)")
 	RootCmd.PersistentFlags().StringVarP(&language_flag, "language", "l", "", "The language to filter on (case-sensitive)")
+	RootCmd.PersistentFlags().BoolVar(&codeql_flag, "codeql", false, "Restrict analysis to CodeQL-supported languages")
 
 	RootCmd.MarkFlagsMutuallyExclusive("enterprise", "org")
-	RootCmd.MarkFlagsMutuallyExclusive("top", "language")
-
-	RootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) (err error) {
-		return
-	}
+	RootCmd.MarkFlagsMutuallyExclusive("top", "language", "codeql")
 
 	RootCmd.AddCommand(countCmd)
 	RootCmd.AddCommand(trendCmd)

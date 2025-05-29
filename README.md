@@ -29,6 +29,35 @@ gh extension install CallMeGreg/gh-language
 
 # Usage
 
+> [!TIP]
+> Each command has default limits to prevent excessive API usage. You can adjust these limits using the `--org-limit` and `--repo-limit` flags. To analyze all repositories in an organization or enterprise, set these flags to a very high number (e.g., `1000000`).
+
+## Common Flags
+
+The following flags are available for all commands:
+- `--org` or `--enterprise`: Specify the organization or enterprise to analyze. These flags are mutually exclusive, and one of them is required.
+- `--org-limit`: Limit the number of organizations to analyze (default is 5).
+- `--repo-limit`: Limit the number of repositories to analyze per organization (default is 10).
+- `--top`: Return the top N languages (default is 10).
+- `--language`: Filter results by a specific programming language (case-sensitive).
+- `--codeql`: Restrict analysis to CodeQL-supported languages.
+
+> [!NOTE]
+> The `--top`, `--language`, and `--codeql` flags are mutually exclusive.
+
+When the `--codeql` flag is set, the analysis will only include the following languages:
+- C
+- C++
+- C#
+- Go
+- Java
+- Kotlin
+- JavaScript
+- Python
+- Ruby
+- Swift
+- TypeScript
+
 ## Count command
 
 Display the count of each programming language used in repos across an enterprise or organization.
@@ -55,15 +84,6 @@ Specify the unit for displaying data (`--unit`):
 gh language data --enterprise YOUR_ENTERPRISE_SLUG --unit megabytes
 ```
 
-## Common Flags
-
-The following flags are available for all commands:
-- `--org` or `--enterprise`: Specify the organization or enterprise to analyze. These flags are mutually exclusive, and one of them is required.
-- `--org-limit`: Limit the number of organizations to analyze (default is 5).
-- `--repo-limit`: Limit the number of repositories to analyze per organization (default is 10).
-- `--top`: Return the top N languages (default is 10). This flag is ignored when a specific language is specified.
-- `--language`: Filter results by a specific programming language (case-sensitive).
-
 ## Example Usage
 Analyze the top 20 languages used across all repositories in an enterprise:
 ```
@@ -78,6 +98,11 @@ gh language trend --org YOUR_ORG_SLUG --repo-limit 100 --language Rust
 Analyze the top 5 languages, based on data size, in megabytes, used across all repositories in an organization:
 ```
 gh language data --org YOUR_ORG_SLUG --repo-limit 1000000 --top 5 --unit megabytes
+```
+
+Analyze all CodeQL-supported languages in an enterprise across all repositories:
+```
+gh language count --enterprise YOUR_ENTERPRISE_SLUG --org-limit 1000000 --repo-limit 1000000 --codeql
 ```
 
 ## Help
@@ -98,6 +123,7 @@ Available Commands:
   trend       Analyze the trend of programming languages used in repos across an organization over time
 
 Flags:
+      --codeql              Restrict analysis to CodeQL-supported languages
   -e, --enterprise string   Specify the enterprise
   -h, --help                help for language
   -l, --language string     The language to filter on (case-sensitive)

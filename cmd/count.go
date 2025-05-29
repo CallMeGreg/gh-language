@@ -26,77 +26,98 @@ func runCount(cmd *cobra.Command, args []string) error {
 	top := top_flag
 	language := language_flag
 
-	if org == "" && enterprise == "" {
-		return fmt.Errorf("either --org or --enterprise flag is required")
+	if err := ValidateFlags(org, enterprise); err != nil {
+		return err
 	}
 
 	var orgs []string
 
 	if enterprise != "" {
-		pterm.Info.Println(fmt.Sprintf("Organization limit: %d, Repository limit: %d, Top languages limit: %d", orgLimit, repoLimit, top))
-		pterm.Info.Println(fmt.Sprintf("Indexing organizations for enterprise: %s", enterprise))
+		// Determine the language filter or top languages info based on flags.
+		languageFilter := GetLanguageFilter(codeql_flag, language, top)
+		// Print organization and repository limits along with the language filter.
+		PrintInfoWithFormat("Organization limit: %d, Repository limit: %d, %s", orgLimit, repoLimit, languageFilter)
+		PrintIndexingEnterprise(enterprise)
 		var err error
 		orgs, err = FetchOrganizations(enterprise, orgLimit)
 		if err != nil {
 			return err
 		}
 	} else {
-		pterm.Info.Println(fmt.Sprintf("Repository limit: %d, Top languages limit: %d", repoLimit, top))
+		// Handle the case where only a single organization is provided.
+		topLanguagesInfo := GetLanguageFilter(codeql_flag, language, top)
+		PrintInfoWithFormat("Repository limit: %d, %s", repoLimit, topLanguagesInfo)
 		orgs = []string{org}
 	}
 
+	// Initialize a map to store language data and a counter for total repositories.
 	languageData := make(map[string]int)
-
 	var totalRepos int
 
+	// Iterate over each organization to fetch repositories and analyze languages.
 	for _, org := range orgs {
+		// Start a spinner to indicate progress for indexing the organization.
 		spinnerInfo, _ := pterm.DefaultSpinner.Start(fmt.Sprintf("Indexing organization: %s", org))
 
+		// Fetch repositories for the organization. This involves a REST API call to GitHub.
 		repos, err := FetchRepositories(org, repoLimit)
 		if err != nil {
+			// Stop the spinner and indicate failure if an error occurs.
 			spinnerInfo.Fail("Failed to index organization")
 			return err
 		}
 
 		if len(repos) == 0 {
+			// Stop the spinner and indicate a warning if no repositories are found.
 			spinnerInfo.Warning(fmt.Sprintf("No repositories found for organization: %s", org))
 			continue
 		}
 
+		// Stop the spinner and indicate success.
 		spinnerInfo.Success(fmt.Sprintf("Successfully indexed organization: %s", org))
+		// Start a progress bar for analyzing repositories.
 		progressBar, _ := pterm.DefaultProgressbar.WithTotal(len(repos)).WithTitle("Analyzing repositories").Start()
 
+		// Increment the total repository count.
 		totalRepos += len(repos)
 
+		// Analyze each repository for language usage.
 		for _, repo := range repos {
 			progressBar.Increment()
+			// Fetch language data for the repository. This involves another REST API call to GitHub.
 			output, _, err := gh.Exec("api", fmt.Sprintf("repos/%s/%s/languages", org, repo.Name))
 			if err != nil {
+				// Print a warning and skip the repository if an error occurs.
 				pterm.Warning.Println(fmt.Sprintf("Skipping repository %s due to error: %s", repo.Name, err))
 				continue
 			}
 
+			// Parse the language data from the API response. This step can fail if the response format changes.
 			var repoLanguages map[string]int
 			if err := json.Unmarshal(output.Bytes(), &repoLanguages); err != nil {
+				// Print a warning and skip the repository if parsing fails.
 				pterm.Warning.Println(fmt.Sprintf("Skipping repository %s due to parsing error: %s", repo.Name, err))
 				continue
 			}
 
+			// Update the language data map with the parsed data.
 			for lang := range repoLanguages {
 				languageData[lang]++
 			}
 		}
 
+		// Stop the progress bar after analyzing all repositories.
 		progressBar.Stop()
 	}
 
+	// Print the total number of repositories analyzed.
 	pterm.Println() // Add a new line
 	pterm.Info.Println(fmt.Sprintf("Total number of repositories analyzed: %d", totalRepos))
-
 	pterm.Println() // Add a new line
 
-	// Filter by specific language if --language flag is set
+	// Filter language data if a specific language is specified.
 	if language != "" {
+		// Create a new map to store only the filtered language data.
 		filteredLanguageData := make(map[string]int)
 		for lang, count := range languageData {
 			if lang == language {
@@ -106,8 +127,9 @@ func runCount(cmd *cobra.Command, args []string) error {
 		languageData = filteredLanguageData
 	}
 
-	// Respect the --top flag
+	// Respect the --top flag by limiting the number of languages displayed.
 	if top > 0 {
+		// Sort the languages by their usage count in descending order.
 		sortedLanguages := make([]struct {
 			Language string
 			Count    int
@@ -124,6 +146,7 @@ func runCount(cmd *cobra.Command, args []string) error {
 			return sortedLanguages[i].Count > sortedLanguages[j].Count
 		})
 
+		// Select the top N languages based on the --top flag.
 		topLanguages := make(map[string]int)
 		for i := 0; i < top && i < len(sortedLanguages); i++ {
 			topLanguages[sortedLanguages[i].Language] = sortedLanguages[i].Count
@@ -132,10 +155,16 @@ func runCount(cmd *cobra.Command, args []string) error {
 		languageData = topLanguages
 	}
 
-	// Update percentage calculation
+	// Filter language data to include only CodeQL-supported languages if the flag is set.
+	if codeql_flag {
+		languageData = IsCodeQLLanguage(languageData)
+	}
+
+	// Render the language data as a table with percentages.
 	pterm.DefaultTable.WithHasHeader(true).WithData(func() [][]string {
 		rows := [][]string{{"Language", "Count", "Percentage"}}
 
+		// Sort the languages again for display purposes.
 		sortedLanguages := make([]struct {
 			Language string
 			Count    int
@@ -152,6 +181,7 @@ func runCount(cmd *cobra.Command, args []string) error {
 			return sortedLanguages[i].Count > sortedLanguages[j].Count
 		})
 
+		// Calculate and add the percentage for each language.
 		for _, langData := range sortedLanguages {
 			percentage := int(float64(langData.Count) / float64(totalRepos) * 100)
 			rows = append(rows, []string{langData.Language, fmt.Sprintf("%d", langData.Count), fmt.Sprintf("%d%%", percentage)})
