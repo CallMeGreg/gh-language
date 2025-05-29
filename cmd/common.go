@@ -100,8 +100,9 @@ func FetchOrganizations(enterprise string, orgLimit int) ([]string, error) {
 // IsCodeQLLanguage filters a map of languages to only include CodeQL-supported languages.
 func IsCodeQLLanguage(languageData map[string]int) map[string]int {
 	allowedLanguages := map[string]bool{
-		"C": true, "C++": true, "C#": true, "Go": true, "Java": true, "Kotlin": true,
+		"C": true, "C++": true, "C#": true, "Go": true, "HTML": true, "Java": true, "Kotlin": true,
 		"JavaScript": true, "Python": true, "Ruby": true, "Swift": true, "TypeScript": true,
+		"Vue": true,
 	}
 	for lang := range languageData {
 		if !allowedLanguages[lang] {

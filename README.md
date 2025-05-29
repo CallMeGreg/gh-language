@@ -50,6 +50,7 @@ When the `--codeql` flag is set, the analysis will only include the following la
 - C++
 - C#
 - Go
+- HTML
 - Java
 - Kotlin
 - JavaScript
@@ -57,6 +58,7 @@ When the `--codeql` flag is set, the analysis will only include the following la
 - Ruby
 - Swift
 - TypeScript
+- Vue
 
 ## Count command
 
