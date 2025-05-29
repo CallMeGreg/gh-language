@@ -12,7 +12,7 @@ import (
 
 var countCmd = &cobra.Command{
 	Use:   "count",
-	Short: "Analyze the count of programming languages used in repos across an organization",
+	Short: "Analyze the count of programming languages used in repos across an enterprise or organization",
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		return runCount(cmd, args)
 	},

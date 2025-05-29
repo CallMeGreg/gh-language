@@ -25,10 +25,10 @@ func _root() error {
 
 	RootCmd.PersistentFlags().StringVarP(&enterprise_flag, "enterprise", "e", "", "Specify the enterprise")
 	RootCmd.PersistentFlags().StringVarP(&org_flag, "org", "o", "", "Specify the organization")
-	RootCmd.PersistentFlags().IntVar(&org_limit_flag, "org-limit", 5, "The maximum number of organizations to evaluate for an enterprise")
-	RootCmd.PersistentFlags().IntVar(&repo_limit_flag, "repo-limit", 10, "The maximum number of repositories to evaluate per organization")
-	RootCmd.PersistentFlags().IntVarP(&top_flag, "top", "t", 10, "Return the top N languages (ignored when a language is specified)")
-	RootCmd.PersistentFlags().StringVarP(&language_flag, "language", "l", "", "The language to filter on (case-sensitive)")
+	RootCmd.PersistentFlags().IntVar(&org_limit_flag, "org-limit", 5, "The maximum number of organizations to analyze for an enterprise")
+	RootCmd.PersistentFlags().IntVar(&repo_limit_flag, "repo-limit", 10, "The maximum number of repositories to analyze per organization")
+	RootCmd.PersistentFlags().IntVarP(&top_flag, "top", "t", 10, "Return the top N languages (ignored when a language filter is specified)")
+	RootCmd.PersistentFlags().StringVarP(&language_flag, "language", "l", "", "A specific language to filter on (case-sensitive)")
 	RootCmd.PersistentFlags().BoolVar(&codeql_flag, "codeql", false, "Restrict analysis to CodeQL-supported languages")
 
 	RootCmd.MarkFlagsMutuallyExclusive("enterprise", "org")

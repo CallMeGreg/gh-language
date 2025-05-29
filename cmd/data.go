@@ -17,7 +17,7 @@ type LanguageData struct {
 
 var dataCmd = &cobra.Command{
 	Use:   "data",
-	Short: "Analyze language data by bytes",
+	Short: "Analyze the programming languages used in repos across an enterprise or organization based on bytes of data",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runData(cmd, args)
 	},

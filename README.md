@@ -8,13 +8,13 @@ This is an extension to the `gh` command-line tool for analyzing the count of pr
 # Pre-requisites
 
 1. Install the GitHub CLI: https://github.com/cli/cli#installation
-2. Confirm that you are authenticated with an account that has access to the org you would like to analyze:
+2. Confirm that you are authenticated with an account that has access to the enterprise/org you would like to analyze:
 
 ```
 gh auth status
 ```
 
-Ensure that you have the necessary scopes. For example, if you are analyzing an organization, you need `repo` scope and for enterprises you need the `read:enterprise` scope. You can add scopes by running:
+Ensure that you have the necessary scopes. For example, if you are analyzing an organization, you need the `repo` scope and for enterprises you need the `read:enterprise` scope. You can add scopes by running:
 
 ```
 gh auth login -s "repo,read:enterprise"
@@ -74,12 +74,12 @@ gh language trend --enterprise YOUR_ENTERPRISE_SLUG
 
 ## Data command
 
-Analyze language data by bytes, rather than count, across repositories in an enterprise or organization.
+Analyze languages by bytes of data, rather than count, across repositories in an enterprise or organization.
 ```
 gh language data --enterprise YOUR_ENTERPRISE_SLUG
 ```
 
-Specify the unit for displaying data (`--unit`):
+Specify the unit for displaying data with the `--unit` flag. Supported units are `bytes`, `kilobytes`, `megabytes`, and `gigabytes`. The default is `bytes`.:
 ```
 gh language data --enterprise YOUR_ENTERPRISE_SLUG --unit megabytes
 ```

@@ -15,7 +15,7 @@ const GITHUB_TIMESTAMP_LAYOUT = "2006-01-02T15:04:05Z"
 
 var trendCmd = &cobra.Command{
 	Use:   "trend",
-	Short: "Analyze the trend of programming languages used in repos across an organization over time",
+	Short: "Analyze the trend of programming languages used in repos across an enterprise or organization over time",
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		return runTrend(cmd, args)
 	},
