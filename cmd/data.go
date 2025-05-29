@@ -94,7 +94,7 @@ func runData(cmd *cobra.Command, args []string) error {
 
 			for lang, bytes := range repoLanguages {
 				if bytes > 0 {
-					languageData[lang]++
+					languageData[lang] += bytes
 				}
 			}
 		}
@@ -175,7 +175,7 @@ func runData(cmd *cobra.Command, args []string) error {
 		})
 
 		for _, langData := range sortedLanguages {
-			percentage := int(float64(languageData[langData.Language]) / float64(totalRepos) * 100)
+			percentage := int(float64(languageData[langData.Language]) / float64(totalBytes) * 100)
 			rows = append(rows, []string{langData.Language, fmt.Sprintf("%.2f", langData.Value), fmt.Sprintf("%d%%", percentage)})
 		}
 

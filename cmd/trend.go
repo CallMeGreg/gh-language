@@ -85,8 +85,20 @@ func runTrend(cmd *cobra.Command, args []string) error {
 				continue
 			}
 
+			// Parse the repository's creation date
+			createdAt, err := time.Parse(GITHUB_TIMESTAMP_LAYOUT, repo.CreatedAt)
+			if err != nil {
+				pterm.Warning.Println(fmt.Sprintf("Skipping repository %s due to invalid creation date: %s", repo.Name, err))
+				continue
+			}
+
+			creationYear := createdAt.Year()
+			if languageMapPerYear[creationYear] == nil {
+				languageMapPerYear[creationYear] = make(map[string]int)
+			}
+
 			for lang := range repoLanguages {
-				languageMapPerYear[time.Now().Year()][lang]++
+				languageMapPerYear[creationYear][lang]++
 			}
 		}
 
