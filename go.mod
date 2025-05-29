@@ -1,4 +1,4 @@
-module github.com/CallMeGreg/gh-language // this is the module name
+module github.com/CallMeGreg/gh-language
 
 go 1.23.0
 
