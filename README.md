@@ -67,12 +67,16 @@ Display the count of each programming language used in repos across an enterpris
 gh language count --enterprise YOUR_ENTERPRISE_SLUG
 ```
 
+https://github.com/user-attachments/assets/27c0a12f-1643-4483-aeae-95aa61165879
+
 ## Trend command
 
 Display the breakdown of programming languages used in repos across an enterprise or organization per year, based on the repo creation date.
 ```
 gh language trend --enterprise YOUR_ENTERPRISE_SLUG
 ```
+
+https://github.com/user-attachments/assets/33c1f4ac-57d9-4ed9-a696-0eb845cd6638
 
 ## Data command
 
@@ -85,6 +89,8 @@ Specify the unit for displaying data with the `--unit` flag. Supported units are
 ```
 gh language data --enterprise YOUR_ENTERPRISE_SLUG --unit megabytes
 ```
+
+https://github.com/user-attachments/assets/435f1d81-2d56-4320-b3dd-7f8d6f2472bb
 
 ## Example Usage
 Analyze the top 20 languages used across all repositories in an enterprise:
@@ -106,6 +112,8 @@ Analyze all CodeQL-supported languages in an enterprise across all repositories:
 ```
 gh language count --enterprise YOUR_ENTERPRISE_SLUG --org-limit 1000000 --repo-limit 1000000 --codeql
 ```
+
+https://github.com/user-attachments/assets/bb8f9ccb-9f71-40b2-9dc4-8d1e34476afd
 
 ## Help
 
