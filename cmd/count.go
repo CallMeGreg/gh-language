@@ -1,11 +1,10 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"sort"
 
-	"github.com/cli/go-gh/v2"
+	"github.com/cli/go-gh/v2/pkg/api"
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 )
@@ -54,6 +53,13 @@ func runCount(cmd *cobra.Command, args []string) error {
 	languageData := make(map[string]int)
 	var totalRepos int
 
+	// Create the REST client once.
+	client, err := api.DefaultRESTClient()
+	if err != nil {
+		pterm.Error.Println("Failed to create REST client:", err)
+		return err
+	}
+
 	// Iterate over each organization to fetch repositories and analyze languages.
 	for _, org := range orgs {
 		// Start a spinner to indicate progress for indexing the organization.
@@ -84,24 +90,15 @@ func runCount(cmd *cobra.Command, args []string) error {
 		// Analyze each repository for language usage.
 		for _, repo := range repos {
 			progressBar.Increment()
-			// Fetch language data for the repository. This involves another REST API call to GitHub.
-			output, _, err := gh.Exec("api", fmt.Sprintf("repos/%s/%s/languages", org, repo.Name))
+			// Fetch language data for the repository using FetchLanguages.
+			languages, err := FetchLanguages(client, org, repo.Name)
 			if err != nil {
 				// Print a warning and skip the repository if an error occurs.
 				pterm.Warning.Println(fmt.Sprintf("Skipping repository %s due to error: %s", repo.Name, err))
 				continue
 			}
-
-			// Parse the language data from the API response. This step can fail if the response format changes.
-			var repoLanguages map[string]int
-			if err := json.Unmarshal(output.Bytes(), &repoLanguages); err != nil {
-				// Print a warning and skip the repository if parsing fails.
-				pterm.Warning.Println(fmt.Sprintf("Skipping repository %s due to parsing error: %s", repo.Name, err))
-				continue
-			}
-
-			// Update the language data map with the parsed data.
-			for lang := range repoLanguages {
+			// Update the language data map with the fetched data by incrementing the count.
+			for lang := range languages {
 				languageData[lang]++
 			}
 		}

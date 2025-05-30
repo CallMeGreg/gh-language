@@ -212,3 +212,42 @@ func GetLanguageFilter(codeqlFlag bool, language string, top int) string {
 	}
 	return fmt.Sprintf("Top languages limit: %d", top)
 }
+
+// FetchLanguages fetches the programming languages used in a repository.
+func FetchLanguages(client *api.RESTClient, org, repo string) (map[string]int, error) {
+	if org == "" || repo == "" {
+		return nil, fmt.Errorf("organization and repository names are required")
+	}
+
+	requestPath := fmt.Sprintf("repos/%s/%s/languages", org, repo)
+	var languages map[string]int
+
+	for {
+		response, err := client.Request(http.MethodGet, requestPath, nil)
+		if err != nil {
+			pterm.Error.Println("Failed to fetch languages for repository:", err)
+			return nil, err
+		}
+
+		// Check rate limit headers
+		remaining := response.Header.Get("X-RateLimit-Remaining")
+		reset := response.Header.Get("X-RateLimit-Reset")
+		if remaining == "0" {
+			resetTime, _ := strconv.Atoi(reset)
+			waitDuration := time.Until(time.Unix(int64(resetTime), 0))
+			pterm.Warning.Printf("Rate limit exceeded. Waiting for %v...\n", waitDuration)
+			time.Sleep(waitDuration)
+			continue
+		}
+
+		if err := json.NewDecoder(response.Body).Decode(&languages); err != nil {
+			pterm.Error.Println("Failed to parse language data:", err)
+			return nil, err
+		}
+		response.Body.Close()
+
+		break // No pagination for language data, so exit loop
+	}
+
+	return languages, nil
+}
