@@ -181,7 +181,7 @@ func runCount(cmd *cobra.Command, args []string) error {
 		// Calculate and add the percentage for each language.
 		for _, langData := range sortedLanguages {
 			percentage := float64(langData.Count) / float64(totalRepos) * 100
-			rows = append(rows, []string{langData.Language, fmt.Sprintf("%d", langData.Count), fmt.Sprintf("%.2f%%", percentage)})
+			rows = append(rows, []string{langData.Language, fmt.Sprintf("%d", langData.Count), fmt.Sprintf("%d%%", percentage)})
 		}
 
 		return rows
