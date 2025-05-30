@@ -32,7 +32,7 @@ gh extension install CallMeGreg/gh-language
 > [!TIP]
 > Each command has default limits to prevent excessive API usage. You can adjust these limits using the `--org-limit` and `--repo-limit` flags. To analyze all repositories in an organization or enterprise, set these flags to a very high number (e.g., `1000000`).
 
-## Common Flags
+## Universal Flags
 
 The following flags are available for all commands:
 - `--org` or `--enterprise`: Specify the organization or enterprise to analyze. These flags are mutually exclusive, and one of them is required.
