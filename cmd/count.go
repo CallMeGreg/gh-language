@@ -66,7 +66,7 @@ func runCount(cmd *cobra.Command, args []string) error {
 		spinnerInfo, _ := pterm.DefaultSpinner.Start(fmt.Sprintf("Indexing organization: %s", org))
 
 		// Fetch repositories for the organization. This involves a REST API call to GitHub.
-		repos, err := FetchRepositories(org, repoLimit)
+		repos, err := FetchRepositories(client, org, repoLimit)
 		if err != nil {
 			// Stop the spinner and indicate failure if an error occurs.
 			spinnerInfo.Fail("Failed to index organization")
@@ -180,8 +180,8 @@ func runCount(cmd *cobra.Command, args []string) error {
 
 		// Calculate and add the percentage for each language.
 		for _, langData := range sortedLanguages {
-			percentage := int(float64(langData.Count) / float64(totalRepos) * 100)
-			rows = append(rows, []string{langData.Language, fmt.Sprintf("%d", langData.Count), fmt.Sprintf("%d%%", percentage)})
+			percentage := float64(langData.Count) / float64(totalRepos) * 100
+			rows = append(rows, []string{langData.Language, fmt.Sprintf("%d", langData.Count), fmt.Sprintf("%.2f%%", percentage)})
 		}
 
 		return rows

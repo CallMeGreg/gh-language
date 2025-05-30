@@ -17,23 +17,97 @@ func Red(s string) string {
 	return "\x1b[31m" + s + "\x1b[m"
 }
 
-func Yellow(s string) string {
-	return "\x1b[33m" + s + "\x1b[m"
+// FetchOrganizations fetches organizations for a given enterprise using the GitHub GraphQL API.
+func FetchOrganizations(enterprise string, orgLimit int) ([]string, error) {
+	if enterprise == "" {
+		return nil, fmt.Errorf("--enterprise flag is required")
+	}
+
+	const maxPerPage = 100
+	var orgs []string
+	var cursor *string
+	fetched := 0
+
+	for {
+		remaining := orgLimit - fetched
+		if remaining > maxPerPage {
+			remaining = maxPerPage
+		}
+
+		query := `{
+			enterprise(slug: "` + enterprise + `") {
+				organizations(first: ` + fmt.Sprintf("%d", remaining) + `, after: ` + formatCursor(cursor) + `) {
+					nodes {
+						login
+					}
+					pageInfo {
+						hasNextPage
+						endCursor
+					}
+				}
+			}
+		}`
+
+		response, stderr, err := gh.Exec("api", "graphql", "-f", "query="+query)
+		if err != nil {
+			pterm.Error.Printf("Failed to fetch organizations for enterprise '%s': %v\n", enterprise, err)
+			pterm.Error.Printf("GraphQL query: %s\n", query)
+			pterm.Error.Printf("gh CLI stderr: %s\n", stderr.String())
+			return nil, err
+		}
+
+		var result struct {
+			Data struct {
+				Enterprise struct {
+					Organizations struct {
+						Nodes []struct {
+							Login string `json:"login"`
+						}
+						PageInfo struct {
+							HasNextPage bool   `json:"hasNextPage"`
+							EndCursor   string `json:"endCursor"`
+						} `json:"pageInfo"`
+					} `json:"organizations"`
+				} `json:"enterprise"`
+			} `json:"data"`
+		}
+
+		if err := json.Unmarshal(response.Bytes(), &result); err != nil {
+			pterm.Error.Printf("Failed to parse organizations data for enterprise '%s': %v\n", enterprise, err)
+			return nil, err
+		}
+
+		for _, org := range result.Data.Enterprise.Organizations.Nodes {
+			orgs = append(orgs, org.Login)
+			fetched++
+			if fetched >= orgLimit {
+				return orgs, nil
+			}
+		}
+
+		if !result.Data.Enterprise.Organizations.PageInfo.HasNextPage {
+			break
+		}
+		cursor = &result.Data.Enterprise.Organizations.PageInfo.EndCursor
+	}
+
+	return orgs, nil
+}
+
+func formatCursor(cursor *string) string {
+	if cursor == nil {
+		return "null"
+	}
+	return `"` + *cursor + `"`
 }
 
 // FetchRepositories fetches repositories for a given organization and limit.
-func FetchRepositories(org string, limit int) ([]struct {
+func FetchRepositories(client *api.RESTClient, org string, limit int) ([]struct {
 	Name      string `json:"name"`
 	CreatedAt string `json:"created_at"`
 }, error) {
 	if org == "" {
 		return nil, fmt.Errorf("no organization identified, please ensure you have access to the organization or enterprise provided")
-	}
-
-	client, err := api.DefaultRESTClient()
-	if err != nil {
-		pterm.Error.Println("Failed to create REST client:", err)
-		return nil, err
 	}
 
 	var allRepos []struct {
@@ -111,53 +185,6 @@ func ShowProgressBar(total int, title string) {
 	progressBar.Stop()
 }
 
-// FetchOrganizations fetches organizations for a given enterprise using the GitHub GraphQL API.
-func FetchOrganizations(enterprise string, orgLimit int) ([]string, error) {
-	if enterprise == "" {
-		return nil, fmt.Errorf("--enterprise flag is required")
-	}
-
-	query := `{
-		enterprise(slug: "` + enterprise + `") {
-			organizations(first: ` + fmt.Sprintf("%d", orgLimit) + `) {
-				nodes {
-					login
-				}
-			}
-		}
-	}`
-
-	response, _, err := gh.Exec("api", "graphql", "-f", "query="+query)
-	if err != nil {
-		pterm.Error.Println("Failed to fetch organizations for enterprise:", err)
-		return nil, err
-	}
-
-	var result struct {
-		Data struct {
-			Enterprise struct {
-				Organizations struct {
-					Nodes []struct {
-						Login string `json:"login"`
-					}
-				} `json:"organizations"`
-			} `json:"enterprise"`
-		} `json:"data"`
-	}
-
-	if err := json.Unmarshal(response.Bytes(), &result); err != nil {
-		pterm.Error.Println("Failed to parse organizations data:", err)
-		return nil, err
-	}
-
-	var orgs []string
-	for _, org := range result.Data.Enterprise.Organizations.Nodes {
-		orgs = append(orgs, org.Login)
-	}
-
-	return orgs, nil
-}
-
 // IsCodeQLLanguage filters a map of languages to only include CodeQL-supported languages.
 func IsCodeQLLanguage(languageData map[string]int) map[string]int {
 	allowedLanguages := map[string]bool{
@@ -165,12 +192,13 @@ func IsCodeQLLanguage(languageData map[string]int) map[string]int {
 		"JavaScript": true, "Python": true, "Ruby": true, "Swift": true, "TypeScript": true,
 		"Vue": true,
 	}
-	for lang := range languageData {
-		if !allowedLanguages[lang] {
-			delete(languageData, lang)
+	filteredLanguages := make(map[string]int)
+	for lang, count := range languageData {
+		if allowedLanguages[lang] {
+			filteredLanguages[lang] = count
 		}
 	}
-	return languageData
+	return filteredLanguages
 }
 
 // PrintInfo prints an informational message with pterm.
@@ -245,7 +273,6 @@ func FetchLanguages(client *api.RESTClient, org, repo string) (map[string]int, e
 			return nil, err
 		}
 		response.Body.Close()
-
 		break // No pagination for language data, so exit loop
 	}
 

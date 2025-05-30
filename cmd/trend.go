@@ -73,7 +73,7 @@ func runTrend(cmd *cobra.Command, args []string) error {
 		spinnerInfo, _ := pterm.DefaultSpinner.Start(fmt.Sprintf("Indexing organization: %s", org))
 
 		// Fetch repositories for the organization. This involves a REST API call to GitHub.
-		repos, err := FetchRepositories(org, repoLimit)
+		repos, err := FetchRepositories(client, org, repoLimit)
 		if err != nil {
 			// Stop the spinner and indicate failure if an error occurs.
 			spinnerInfo.Fail("Failed to index organization")
