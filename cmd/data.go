@@ -9,24 +9,35 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var countCmd = &cobra.Command{
-	Use:   "count",
-	Short: "Analyze the count of programming languages used in repos across an enterprise or organization",
-	RunE: func(cmd *cobra.Command, args []string) (err error) {
-		return runCount(cmd, args)
+type LanguageData struct {
+	Language string `json:"language"`
+	Bytes    int    `json:"bytes"`
+}
+
+var dataCmd = &cobra.Command{
+	Use:   "data",
+	Short: "Analyze the programming languages used in repos across an enterprise or organization based on bytes of data",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runData(cmd, args)
 	},
 }
 
-func runCount(cmd *cobra.Command, args []string) error {
+func runData(cmd *cobra.Command, args []string) error {
 	org := org_flag
 	enterprise := enterprise_flag
 	repoLimit := repo_limit_flag
 	orgLimit := org_limit_flag
 	top := top_flag
 	language := language_flag
+	unit, _ := cmd.Flags().GetString("unit")
 
 	if err := ValidateFlags(org, enterprise); err != nil {
 		return err
+	}
+
+	if unit != "bytes" && unit != "kilobytes" && unit != "megabytes" && unit != "gigabytes" {
+		// Validate the unit flag to ensure it is one of the allowed values.
+		return fmt.Errorf("invalid unit specified. Options are: bytes, kilobytes, megabytes, gigabytes")
 	}
 
 	var orgs []string
@@ -97,9 +108,9 @@ func runCount(cmd *cobra.Command, args []string) error {
 				pterm.Warning.Println(fmt.Sprintf("Skipping repository %s due to error: %s", repo.Name, err))
 				continue
 			}
-			// Update the language data map with the fetched data by incrementing the count.
-			for lang := range languages {
-				languageData[lang]++
+			// Update the language data map with the fetched data.
+			for lang, bytes := range languages {
+				languageData[lang] += bytes
 			}
 		}
 
@@ -116,9 +127,9 @@ func runCount(cmd *cobra.Command, args []string) error {
 	if language != "" {
 		// Create a new map to store only the filtered language data.
 		filteredLanguageData := make(map[string]int)
-		for lang, count := range languageData {
+		for lang, bytes := range languageData {
 			if lang == language {
-				filteredLanguageData[lang] = count
+				filteredLanguageData[lang] = bytes
 			}
 		}
 		languageData = filteredLanguageData
@@ -126,66 +137,86 @@ func runCount(cmd *cobra.Command, args []string) error {
 
 	// Respect the --top flag by limiting the number of languages displayed.
 	if top > 0 {
-		// Sort the languages by their usage count in descending order.
+		// Sort the languages by their usage in descending order.
 		sortedLanguages := make([]struct {
 			Language string
-			Count    int
+			Bytes    int
 		}, 0, len(languageData))
 
-		for lang, count := range languageData {
+		for lang, bytes := range languageData {
 			sortedLanguages = append(sortedLanguages, struct {
 				Language string
-				Count    int
-			}{lang, count})
+				Bytes    int
+			}{lang, bytes})
 		}
 
 		sort.Slice(sortedLanguages, func(i, j int) bool {
-			return sortedLanguages[i].Count > sortedLanguages[j].Count
+			return sortedLanguages[i].Bytes > sortedLanguages[j].Bytes
 		})
 
 		// Select the top N languages based on the --top flag.
 		topLanguages := make(map[string]int)
 		for i := 0; i < top && i < len(sortedLanguages); i++ {
-			topLanguages[sortedLanguages[i].Language] = sortedLanguages[i].Count
+			topLanguages[sortedLanguages[i].Language] = sortedLanguages[i].Bytes
 		}
 
 		languageData = topLanguages
 	}
 
-	// Filter language data to include only CodeQL-supported languages if the flag is set.
+	// If the CodeQL flag is set, filter the language data to include only CodeQL-supported languages.
 	if codeql_flag {
 		languageData = IsCodeQLLanguage(languageData)
 	}
 
 	// Render the language data as a table with percentages.
 	pterm.DefaultTable.WithHasHeader(true).WithData(func() [][]string {
-		rows := [][]string{{"Language", "Count", "Percentage"}}
+		rows := [][]string{{"Language", unit, "Percentage"}}
 
 		// Sort the languages again for display purposes.
 		sortedLanguages := make([]struct {
 			Language string
-			Count    int
+			Value    float64
 		}, 0, len(languageData))
 
-		for lang, count := range languageData {
+		var totalBytes int
+		for _, bytes := range languageData {
+			totalBytes += bytes
+		}
+
+		for lang, bytes := range languageData {
+			var value float64
+			switch unit {
+			case "bytes":
+				value = float64(bytes)
+			case "kilobytes":
+				value = float64(bytes) / 1024
+			case "megabytes":
+				value = float64(bytes) / 1024 / 1024
+			case "gigabytes":
+				value = float64(bytes) / 1024 / 1024 / 1024
+			}
 			sortedLanguages = append(sortedLanguages, struct {
 				Language string
-				Count    int
-			}{lang, count})
+				Value    float64
+			}{lang, value})
 		}
 
 		sort.Slice(sortedLanguages, func(i, j int) bool {
-			return sortedLanguages[i].Count > sortedLanguages[j].Count
+			return sortedLanguages[i].Value > sortedLanguages[j].Value
 		})
 
-		// Calculate and add the percentage for each language.
+		// Add each language and its usage to the table rows.
 		for _, langData := range sortedLanguages {
-			percentage := int(float64(langData.Count) / float64(totalRepos) * 100)
-			rows = append(rows, []string{langData.Language, fmt.Sprintf("%d", langData.Count), fmt.Sprintf("%d%%", percentage)})
+			percentage := int(float64(languageData[langData.Language]) / float64(totalBytes) * 100)
+			rows = append(rows, []string{langData.Language, fmt.Sprintf("%d", int(langData.Value)), fmt.Sprintf("%d%%", percentage)})
 		}
 
 		return rows
 	}()).Render()
 
 	return nil
+}
+
+func init() {
+	dataCmd.Flags().String("unit", "bytes", "Specify the unit for language data (bytes, kilobytes, megabytes, gigabytes)")
 }
