@@ -47,12 +47,15 @@ func runData(cmd *cobra.Command, args []string) error {
 		languageFilter := GetLanguageFilter(codeql_flag, language, top)
 		// Print organization and repository limits along with the language filter.
 		PrintInfoWithFormat("Organization limit: %d, Repository limit: %d, %s", orgLimit, repoLimit, languageFilter)
-		PrintIndexingEnterprise(enterprise)
+		spinnerEnterprise, _ := StartIndexingEnterpriseSpinner(enterprise)
 		var err error
 		orgs, err = FetchOrganizations(enterprise, orgLimit)
 		if err != nil {
+			spinnerEnterprise.Fail("Failed to index organizations for enterprise")
 			return err
 		}
+		spinnerEnterprise.Success(fmt.Sprintf("Successfully indexed enterprise: %s", enterprise))
+		PrintTotalOrganizations(len(orgs))
 	} else {
 		// Handle the case where only a single organization is provided.
 		topLanguagesInfo := GetLanguageFilter(codeql_flag, language, top)
