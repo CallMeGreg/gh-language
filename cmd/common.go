@@ -230,6 +230,9 @@ func PrintTotalRepositories(total int) {
 
 // ValidateFlags checks if the required flags are set and returns an error if not.
 func ValidateFlags(org, enterprise string) error {
+	// Check for updates before validation (only once per command execution)
+	CheckForUpdates()
+
 	if org == "" && enterprise == "" {
 		return fmt.Errorf("either --org or --enterprise flag is required")
 	}

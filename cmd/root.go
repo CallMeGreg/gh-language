@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 )
 
@@ -23,6 +24,10 @@ var RootCmd = &cobra.Command{
 func _root() error {
 	RootCmd.CompletionOptions.DisableDefaultCmd = true
 
+	// Add version flag
+	var versionFlag bool
+	RootCmd.Flags().BoolVarP(&versionFlag, "version", "v", false, "Show version information")
+
 	RootCmd.PersistentFlags().StringVarP(&enterprise_flag, "enterprise", "e", "", "Specify the enterprise")
 	RootCmd.PersistentFlags().StringVarP(&org_flag, "org", "o", "", "Specify the organization")
 	RootCmd.PersistentFlags().IntVar(&org_limit_flag, "org-limit", 5, "The maximum number of organizations to analyze for an enterprise")
@@ -37,6 +42,12 @@ func _root() error {
 	RootCmd.AddCommand(countCmd)
 	RootCmd.AddCommand(trendCmd)
 	RootCmd.AddCommand(dataCmd)
+
+	// Check if version flag is set before executing
+	if len(os.Args) > 1 && (os.Args[1] == "--version" || os.Args[1] == "-v") {
+		pterm.Info.Printf("gh-language version %s\n", Version)
+		return nil
+	}
 
 	return RootCmd.Execute()
 }
