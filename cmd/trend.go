@@ -5,7 +5,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/cli/go-gh/v2/pkg/api"
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 )
@@ -60,52 +59,47 @@ func runTrend(cmd *cobra.Command, args []string) error {
 
 	var totalRepos int
 
-	// Create the REST client once.
-	client, err := api.DefaultRESTClient()
-	if err != nil {
-		pterm.Error.Println("Failed to create REST client:", err)
-		return err
-	}
-
 	// Iterate over each organization to fetch repositories and analyze languages.
 	for _, org := range orgs {
 		// Start a spinner to indicate progress for indexing the organization.
 		spinnerInfo, _ := pterm.DefaultSpinner.Start(fmt.Sprintf("Indexing organization: %s", org))
 
-		// Fetch repositories for the organization. This involves a REST API call to GitHub.
-		repos, err := FetchRepositories(client, org, repoLimit)
+		// First, count the total number of repositories in the organization
+		totalReposInOrg, err := CountRepositoriesGraphQL(org)
 		if err != nil {
 			// Stop the spinner and indicate failure if an error occurs.
 			spinnerInfo.Fail("Failed to index organization")
 			return err
 		}
 
-		if len(repos) == 0 {
+		if totalReposInOrg == 0 {
 			// Stop the spinner and indicate a warning if no repositories are found.
 			spinnerInfo.Warning(fmt.Sprintf("No repositories found for organization: %s", org))
 			continue
 		}
 
+		// Apply the repo limit to determine effective repository count
+		effectiveRepoCount := totalReposInOrg
+		if repoLimit < totalReposInOrg {
+			effectiveRepoCount = repoLimit
+		}
+
 		// Stop the spinner and indicate success.
-		spinnerInfo.Success(fmt.Sprintf("Successfully indexed organization: %s", org))
-		// Start a progress bar for analyzing repositories.
-		progressBar, _ := pterm.DefaultProgressbar.WithTotal(len(repos)).WithTitle("Analyzing repositories").Start()
+		spinnerInfo.Success(fmt.Sprintf("Successfully indexed organization: %s (%d repositories, limited to %d)", org, totalReposInOrg, effectiveRepoCount))
+
+		// Fetch repositories with languages using GraphQL API with progress bar.
+		repos, err := FetchRepositoriesGraphQL(org, repoLimit, totalReposInOrg)
+		if err != nil {
+			return err
+		}
 
 		// Increment the total repository count.
 		totalRepos += len(repos)
 
 		// Analyze each repository for language usage and group by year.
 		for _, repo := range repos {
-			progressBar.Increment()
-			// Fetch language data for the repository using FetchLanguages.
-			languages, err := FetchLanguages(client, org, repo.Name)
-			if err != nil {
-				// Print a warning and skip the repository if an error occurs.
-				pterm.Warning.Println(fmt.Sprintf("Skipping repository %s due to error: %s", repo.Name, err))
-				continue
-			}
 			// Update the trend data map with the fetched data by incrementing the count.
-			for lang := range languages {
+			for lang := range repo.Languages {
 				trendData[lang]++
 			}
 
@@ -122,13 +116,10 @@ func runTrend(cmd *cobra.Command, args []string) error {
 				languageMapPerYear[creationYear] = make(map[string]int)
 			}
 
-			for lang := range languages {
+			for lang := range repo.Languages {
 				languageMapPerYear[creationYear][lang]++
 			}
 		}
-
-		// Stop the progress bar after analyzing all repositories.
-		progressBar.Stop()
 	}
 
 	// Print the total number of repositories analyzed.

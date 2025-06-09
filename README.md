@@ -20,6 +20,9 @@ Ensure that you have the necessary scopes. For example, if you are analyzing an 
 gh auth login -s "repo,read:enterprise"
 ```
 
+> [!IMPORTANT]
+> Enterprise owners do not inherently have access to all of the repositories across their organizations. You must ensure that your account has the necessary permissions to access the repositories you want to analyze.
+
 # Installation
 
 To install this extension, run the following command:
@@ -30,7 +33,7 @@ gh extension install CallMeGreg/gh-language
 # Usage
 
 > [!TIP]
-> Each command has default limits to prevent excessive API usage. You can adjust these limits using the `--org-limit` and `--repo-limit` flags. To analyze all repositories in an organization or enterprise, set these flags to a very high number (e.g., `1000000`).
+> Each command has default limits to prevent accidental excessive API usage. You can adjust these limits using the `--org-limit` and `--repo-limit` flags. To analyze all repositories in an organization or enterprise, set these flags to a very high number (e.g., `1000000`).
 
 ## Universal Flags
 
@@ -114,6 +117,16 @@ gh language count --enterprise YOUR_ENTERPRISE_SLUG --org-limit 1000000 --repo-l
 ```
 
 https://github.com/user-attachments/assets/bb8f9ccb-9f71-40b2-9dc4-8d1e34476afd
+
+## Performance
+
+The `count` and `trend` commands have been optimized to use GitHub's GraphQL API, which provides significant performance improvements over the REST API:
+
+- **Reduced API calls**: GraphQL fetches repository and language data in a single request, eliminating the need for separate REST API calls per repository
+- **Efficient pagination**: Uses cursor-based pagination with real-time progress tracking showing the current page being fetched
+- **Better rate limiting**: GraphQL API has different rate limits than REST API, often allowing for faster data retrieval
+
+The `data` command continues to use the REST API as it requires detailed byte-level language statistics that are only available through the REST endpoints.
 
 ## Help
 
