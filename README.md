@@ -123,8 +123,7 @@ https://github.com/user-attachments/assets/bb8f9ccb-9f71-40b2-9dc4-8d1e34476afd
 The `count` and `trend` commands have been optimized to use GitHub's GraphQL API, which provides significant performance improvements over the REST API:
 
 - **Reduced API calls**: GraphQL fetches repository and language data in a single request, eliminating the need for separate REST API calls per repository
-- **Efficient pagination**: Uses cursor-based pagination with real-time progress tracking showing the current page being fetched
-- **Better rate limiting**: GraphQL API has different rate limits than REST API, often allowing for faster data retrieval
+- **Better rate limiting**: GraphQL API has different rate limits than REST API, often allowing for more processing before hitting limits
 
 The `data` command continues to use the REST API as it requires detailed byte-level language statistics that are only available through the REST endpoints.
 
