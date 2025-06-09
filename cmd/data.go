@@ -75,7 +75,7 @@ func runData(cmd *cobra.Command, args []string) error {
 	}
 
 	// Iterate over each organization to fetch repositories and analyze languages.
-	for _, org := range orgs {
+	for orgIndex, org := range orgs {
 		// Start a spinner to indicate progress for indexing the organization.
 		spinnerInfo, _ := pterm.DefaultSpinner.Start(fmt.Sprintf("Indexing organization: %s", org))
 
@@ -89,12 +89,12 @@ func runData(cmd *cobra.Command, args []string) error {
 
 		if len(repos) == 0 {
 			// Stop the spinner and indicate a warning if no repositories are found.
-			spinnerInfo.Warning(fmt.Sprintf("No repositories found for organization: %s", org))
+			spinnerInfo.Warning(fmt.Sprintf("No repositories found for organization %d of %d: %s", orgIndex+1, len(orgs), org))
 			continue
 		}
 
 		// Stop the spinner and indicate success.
-		spinnerInfo.Success(fmt.Sprintf("Successfully indexed organization: %s", org))
+		spinnerInfo.Success(fmt.Sprintf("Successfully indexed organization %d of %d: %s", orgIndex+1, len(orgs), org))
 		// Start a progress bar for analyzing repositories.
 		progressBar, _ := pterm.DefaultProgressbar.WithTotal(len(repos)).WithTitle("Analyzing repositories").Start()
 

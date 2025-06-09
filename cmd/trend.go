@@ -63,7 +63,7 @@ func runTrend(cmd *cobra.Command, args []string) error {
 	var totalRepos int
 
 	// Iterate over each organization to fetch repositories and analyze languages.
-	for _, org := range orgs {
+	for orgIndex, org := range orgs {
 		// Start a spinner to indicate progress for indexing the organization.
 		spinnerInfo, _ := pterm.DefaultSpinner.Start(fmt.Sprintf("Indexing organization: %s", org))
 
@@ -77,7 +77,7 @@ func runTrend(cmd *cobra.Command, args []string) error {
 
 		if totalReposInOrg == 0 {
 			// Stop the spinner and indicate a warning if no repositories are found.
-			spinnerInfo.Warning(fmt.Sprintf("No repositories found for organization: %s", org))
+			spinnerInfo.Warning(fmt.Sprintf("No repositories found for organization %d of %d: %s", orgIndex+1, len(orgs), org))
 			continue
 		}
 
@@ -88,7 +88,7 @@ func runTrend(cmd *cobra.Command, args []string) error {
 		}
 
 		// Stop the spinner and indicate success.
-		spinnerInfo.Success(fmt.Sprintf("Successfully indexed organization: %s (%d repositories, limited to %d)", org, totalReposInOrg, effectiveRepoCount))
+		spinnerInfo.Success(fmt.Sprintf("Successfully indexed organization %d of %d: %s (%d repositories, limited to %d)", orgIndex+1, len(orgs), org, totalReposInOrg, effectiveRepoCount))
 
 		// Fetch repositories with languages using GraphQL API with progress bar.
 		repos, err := FetchRepositoriesGraphQL(org, repoLimit, totalReposInOrg)
