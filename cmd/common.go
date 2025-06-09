@@ -278,3 +278,187 @@ func FetchLanguages(client *api.RESTClient, org, repo string) (map[string]int, e
 
 	return languages, nil
 }
+
+// FetchRepositoriesGraphQL fetches repositories with languages for a given organization using GraphQL API with pagination.
+func FetchRepositoriesGraphQL(org string, limit int, totalRepos int) ([]struct {
+	Name      string              `json:"name"`
+	CreatedAt string              `json:"created_at"`
+	Languages map[string]struct{} `json:"languages"`
+}, error) {
+	if org == "" {
+		return nil, fmt.Errorf("no organization identified, please ensure you have access to the organization or enterprise provided")
+	}
+
+	const maxPerPage = 100
+	var allRepos []struct {
+		Name      string              `json:"name"`
+		CreatedAt string              `json:"created_at"`
+		Languages map[string]struct{} `json:"languages"`
+	}
+
+	var cursor *string
+	fetched := 0
+	pageCount := 0
+
+	// Use progress bar since we know the total number of repos available
+	progressTarget := limit
+	if totalRepos < limit {
+		progressTarget = totalRepos
+	}
+	progressBar, _ := pterm.DefaultProgressbar.WithTotal(progressTarget).WithTitle("Fetching repositories and their languages").Start()
+
+	for {
+		remaining := limit - fetched
+		if remaining <= 0 {
+			break
+		}
+		if remaining > maxPerPage {
+			remaining = maxPerPage
+		}
+
+		pageCount++
+
+		query := fmt.Sprintf(`{
+			organization(login: "%s") {
+				repositories(first: %d, after: %s) {
+					nodes {
+						name
+						createdAt
+						languages(first: 100) {
+							nodes {
+								name
+							}
+						}
+					}
+					pageInfo {
+						hasNextPage
+						endCursor
+					}
+				}
+			}
+		}`, org, remaining, formatCursor(cursor))
+
+		response, stderr, err := gh.Exec("api", "graphql", "-f", "query="+query)
+		if err != nil {
+			progressBar.Stop()
+			pterm.Error.Printf("Failed to fetch repositories for organization '%s': %v\n", org, err)
+			pterm.Error.Printf("GraphQL query: %s\n", query)
+			pterm.Error.Printf("gh CLI stderr: %s\n", stderr.String())
+			return nil, err
+		}
+
+		var result struct {
+			Data struct {
+				Organization struct {
+					Repositories struct {
+						Nodes []struct {
+							Name      string `json:"name"`
+							CreatedAt string `json:"createdAt"`
+							Languages struct {
+								Nodes []struct {
+									Name string `json:"name"`
+								} `json:"nodes"`
+							} `json:"languages"`
+						} `json:"nodes"`
+						PageInfo struct {
+							HasNextPage bool   `json:"hasNextPage"`
+							EndCursor   string `json:"endCursor"`
+						} `json:"pageInfo"`
+					} `json:"repositories"`
+				} `json:"organization"`
+			} `json:"data"`
+		}
+
+		if err := json.Unmarshal(response.Bytes(), &result); err != nil {
+			progressBar.Stop()
+			pterm.Error.Printf("Failed to parse repositories data for organization '%s': %v\n", org, err)
+			return nil, err
+		}
+
+		// Check if organization exists
+		if len(result.Data.Organization.Repositories.Nodes) == 0 && cursor == nil {
+			progressBar.Stop()
+			pterm.Warning.Printf("No repositories found for organization: %s\n", org)
+			return allRepos, nil
+		}
+
+		// Process repositories from this page
+		reposInThisPage := 0
+		for _, repo := range result.Data.Organization.Repositories.Nodes {
+			// Convert language nodes to map for compatibility
+			languages := make(map[string]struct{})
+			for _, lang := range repo.Languages.Nodes {
+				languages[lang.Name] = struct{}{}
+			}
+
+			allRepos = append(allRepos, struct {
+				Name      string              `json:"name"`
+				CreatedAt string              `json:"created_at"`
+				Languages map[string]struct{} `json:"languages"`
+			}{
+				Name:      repo.Name,
+				CreatedAt: repo.CreatedAt,
+				Languages: languages,
+			})
+
+			fetched++
+			reposInThisPage++
+			if fetched >= limit {
+				break
+			}
+		}
+
+		// Update progress bar with current progress after processing this page
+		progressBar.Add(reposInThisPage)
+
+		// Check if we've reached the limit or if there are no more pages
+		if fetched >= limit || !result.Data.Organization.Repositories.PageInfo.HasNextPage {
+			break
+		}
+		cursor = &result.Data.Organization.Repositories.PageInfo.EndCursor
+
+	}
+
+	progressBar.Stop()
+	return allRepos, nil
+}
+
+// CountRepositoriesGraphQL counts the total number of repositories in an organization using GraphQL API.
+func CountRepositoriesGraphQL(org string) (int, error) {
+	if org == "" {
+		return 0, fmt.Errorf("no organization identified, please ensure you have access to the organization or enterprise provided")
+	}
+
+	query := fmt.Sprintf(`{
+		organization(login: "%s") {
+			repositories {
+				totalCount
+			}
+		}
+	}`, org)
+
+	response, stderr, err := gh.Exec("api", "graphql", "-f", "query="+query)
+	if err != nil {
+		pterm.Error.Printf("Failed to count repositories for organization '%s': %v\n", org, err)
+		pterm.Error.Printf("GraphQL query: %s\n", query)
+		pterm.Error.Printf("gh CLI stderr: %s\n", stderr.String())
+		return 0, err
+	}
+
+	var result struct {
+		Data struct {
+			Organization struct {
+				Repositories struct {
+					TotalCount int `json:"totalCount"`
+				} `json:"repositories"`
+			} `json:"organization"`
+		} `json:"data"`
+	}
+
+	if err := json.Unmarshal(response.Bytes(), &result); err != nil {
+		pterm.Error.Printf("Failed to parse repository count data for organization '%s': %v\n", org, err)
+		return 0, err
+	}
+
+	return result.Data.Organization.Repositories.TotalCount, nil
+}
