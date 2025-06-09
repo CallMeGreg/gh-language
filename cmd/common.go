@@ -211,9 +211,14 @@ func PrintInfoWithFormat(format string, args ...interface{}) {
 	pterm.Info.Println(fmt.Sprintf(format, args...))
 }
 
-// PrintIndexingEnterprise prints a message about indexing organizations for an enterprise.
-func PrintIndexingEnterprise(enterprise string) {
-	PrintInfoWithFormat("Indexing organizations for enterprise: %s", enterprise)
+// StartIndexingEnterpriseSpinner starts a spinner for indexing organizations for an enterprise.
+func StartIndexingEnterpriseSpinner(enterprise string) (*pterm.SpinnerPrinter, error) {
+	return pterm.DefaultSpinner.Start(fmt.Sprintf("Indexing organizations for enterprise: %s", enterprise))
+}
+
+// PrintTotalOrganizations prints the total number of organizations found.
+func PrintTotalOrganizations(total int) {
+	PrintInfoWithFormat("Total number of organizations found: %d", total)
 }
 
 // PrintTotalRepositories prints the total number of repositories analyzed.

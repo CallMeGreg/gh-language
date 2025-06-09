@@ -35,12 +35,15 @@ func runCount(cmd *cobra.Command, args []string) error {
 		languageFilter := GetLanguageFilter(codeql_flag, language, top)
 		// Print organization and repository limits along with the language filter.
 		PrintInfoWithFormat("Organization limit: %d, Repository limit: %d, %s", orgLimit, repoLimit, languageFilter)
-		PrintIndexingEnterprise(enterprise)
+		spinnerEnterprise, _ := StartIndexingEnterpriseSpinner(enterprise)
 		var err error
 		orgs, err = FetchOrganizations(enterprise, orgLimit)
 		if err != nil {
+			spinnerEnterprise.Fail("Failed to index organizations for enterprise")
 			return err
 		}
+		spinnerEnterprise.Success(fmt.Sprintf("Successfully indexed enterprise: %s", enterprise))
+		PrintTotalOrganizations(len(orgs))
 	} else {
 		// Handle the case where only a single organization is provided.
 		topLanguagesInfo := GetLanguageFilter(codeql_flag, language, top)
@@ -53,7 +56,7 @@ func runCount(cmd *cobra.Command, args []string) error {
 	var totalRepos int
 
 	// Iterate over each organization to fetch repositories and analyze languages.
-	for _, org := range orgs {
+	for orgIndex, org := range orgs {
 		// Start a spinner to indicate progress for indexing the organization.
 		spinnerInfo, _ := pterm.DefaultSpinner.Start(fmt.Sprintf("Indexing organization: %s", org))
 
@@ -67,7 +70,7 @@ func runCount(cmd *cobra.Command, args []string) error {
 
 		if totalReposInOrg == 0 {
 			// Stop the spinner and indicate a warning if no repositories are found.
-			spinnerInfo.Warning(fmt.Sprintf("No repositories found for organization: %s", org))
+			spinnerInfo.Warning(fmt.Sprintf("No repositories found for organization %d of %d: %s", orgIndex+1, len(orgs), org))
 			continue
 		}
 
@@ -78,7 +81,7 @@ func runCount(cmd *cobra.Command, args []string) error {
 		}
 
 		// Stop the spinner and indicate success.
-		spinnerInfo.Success(fmt.Sprintf("Successfully indexed organization: %s (%d repositories, limited to %d)", org, totalReposInOrg, effectiveRepoCount))
+		spinnerInfo.Success(fmt.Sprintf("Successfully indexed organization %d of %d: %s (%d repositories, limited to %d)", orgIndex+1, len(orgs), org, totalReposInOrg, effectiveRepoCount))
 
 		// Fetch repositories with languages using GraphQL API with progress bar.
 		repos, err := FetchRepositoriesGraphQL(org, repoLimit, totalReposInOrg)
