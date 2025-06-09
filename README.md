@@ -63,6 +63,37 @@ When the `--codeql` flag is set, the analysis will only include the following la
 - TypeScript
 - Vue
 
+## Version Management
+
+The extension includes built-in version management capabilities:
+
+### Checking Your Current Version
+
+To check the version of the extension you have installed:
+```bash
+gh language --version
+# or
+gh language -v
+# or  
+gh language version
+```
+
+### Automatic Update Notifications
+
+The extension automatically checks for newer versions when you run any command. If a newer version is available, you'll see a warning message like:
+
+```
+WARNING A newer version (v2.1.0) is available. Upgrade with: gh extension upgrade CallMeGreg/gh-language
+```
+
+To upgrade to the latest version, simply run the suggested command:
+```bash
+gh extension upgrade CallMeGreg/gh-language
+```
+
+> [!NOTE]  
+> Version checking is performed silently in the background and will not block or slow down command execution if the GitHub API is unavailable.
+
 ## Count command
 
 Display the count of each programming language used in repos across an enterprise or organization.
@@ -139,20 +170,22 @@ Usage:
   language [command]
 
 Available Commands:
-  count       Analyze the count of programming languages used in repos across an organization
-  data        Analyze language data by bytes
+  count       Analyze the count of programming languages used in repos across an enterprise or organization
+  data        Analyze the programming languages used in repos across an enterprise or organization based on bytes of data
   help        Help about any command
-  trend       Analyze the trend of programming languages used in repos across an organization over time
+  trend       Analyze the trend of programming languages used in repos across an enterprise or organization over time
+  version     Show version information
 
 Flags:
       --codeql              Restrict analysis to CodeQL-supported languages
   -e, --enterprise string   Specify the enterprise
   -h, --help                help for language
-  -l, --language string     The language to filter on (case-sensitive)
+  -l, --language string     A specific language to filter on (case-sensitive)
   -o, --org string          Specify the organization
-      --org-limit int       The maximum number of organizations to evaluate for an enterprise (default 5)
-      --repo-limit int      The maximum number of repositories to evaluate per organization (default 10)
-  -t, --top int             Return the top N languages (ignored when a language is specified) (default 10)
+      --org-limit int       The maximum number of organizations to analyze for an enterprise (default 5)
+      --repo-limit int      The maximum number of repositories to analyze per organization (default 10)
+  -t, --top int             Return the top N languages (ignored when a language filter is specified) (default 10)
+  -v, --version             Show version information
 
 Use "language [command] --help" for more information about a command.
 ```
