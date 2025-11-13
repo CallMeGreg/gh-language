@@ -44,6 +44,7 @@ The following flags are available for all commands:
 - `--top`: Return the top N languages (default is 10).
 - `--language`: Filter results by a specific programming language (case-sensitive).
 - `--codeql`: Restrict analysis to CodeQL-supported languages.
+- `--hostname`: GitHub hostname for GitHub Enterprise Server (default is "github.com").
 
 > [!NOTE]
 > The `--top`, `--language`, and `--codeql` flags are mutually exclusive.
@@ -114,6 +115,11 @@ gh language data --org YOUR_ORG_SLUG --repo-limit 1000000 --top 5 --unit megabyt
 Analyze all CodeQL-supported languages in an enterprise across all repositories:
 ```
 gh language count --enterprise YOUR_ENTERPRISE_SLUG --org-limit 1000000 --repo-limit 1000000 --codeql
+```
+
+Analyze languages in an organization on a GitHub Enterprise Server instance:
+```
+gh language count --org YOUR_ORG_SLUG --hostname ghes.example.com --repo-limit 1000000
 ```
 
 https://github.com/user-attachments/assets/bb8f9ccb-9f71-40b2-9dc4-8d1e34476afd
