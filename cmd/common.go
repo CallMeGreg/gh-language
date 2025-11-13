@@ -28,7 +28,7 @@ func Red(s string) string {
 // FetchOrganizations fetches organizations for a given enterprise using the GitHub GraphQL API.
 func FetchOrganizations(enterprise string, orgLimit int, hostname string) ([]string, error) {
 	if enterprise == "" {
-		return nil, fmt.Errorf("--enterprise flag is required")
+		return nil, fmt.Errorf("--enterprise-slug flag is required")
 	}
 
 	const maxPerPage = 100

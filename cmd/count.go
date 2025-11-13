@@ -18,12 +18,12 @@ var countCmd = &cobra.Command{
 
 func runCount(cmd *cobra.Command, args []string) error {
 	org := org_flag
-	enterprise := enterprise_flag
+	enterprise := enterprise_slug_flag
 	repoLimit := repo_limit_flag
 	orgLimit := org_limit_flag
 	top := top_flag
 	language := language_flag
-	hostname := hostname_flag
+	hostname := github_enterprise_server_url_flag
 
 	if err := ValidateFlags(org, enterprise); err != nil {
 		return err
