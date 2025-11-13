@@ -38,12 +38,13 @@ gh extension install CallMeGreg/gh-language
 ## Universal Flags
 
 The following flags are available for all commands:
-- `--org` or `--enterprise`: Specify the organization or enterprise to analyze. These flags are mutually exclusive, and one of them is required.
+- `--org` or `--enterprise` (`-e`): Specify the organization or enterprise slug to analyze. These flags are mutually exclusive, and one of them is required.
 - `--org-limit`: Limit the number of organizations to analyze (default is 5).
 - `--repo-limit`: Limit the number of repositories to analyze per organization (default is 10).
 - `--top`: Return the top N languages (default is 10).
 - `--language`: Filter results by a specific programming language (case-sensitive).
 - `--codeql`: Restrict analysis to CodeQL-supported languages.
+- `--github-enterprise-server-url` (`-u`): GitHub Enterprise Server URL (e.g., github.company.com) (default is "github.com").
 
 > [!NOTE]
 > The `--top`, `--language`, and `--codeql` flags are mutually exclusive.
@@ -116,6 +117,11 @@ Analyze all CodeQL-supported languages in an enterprise across all repositories:
 gh language count --enterprise YOUR_ENTERPRISE_SLUG --org-limit 1000000 --repo-limit 1000000 --codeql
 ```
 
+Analyze languages in an organization on a GitHub Enterprise Server instance:
+```
+gh language count --org YOUR_ORG_SLUG --github-enterprise-server-url ghes.example.com --repo-limit 1000000
+```
+
 https://github.com/user-attachments/assets/bb8f9ccb-9f71-40b2-9dc4-8d1e34476afd
 
 ## Performance
@@ -139,22 +145,23 @@ Usage:
   language [command]
 
 Available Commands:
-  count       Analyze the count of programming languages used in repos across an organization
-  data        Analyze language data by bytes
+  count       Analyze the count of programming languages used in repos across an enterprise or organization
+  data        Analyze the programming languages used in repos across an enterprise or organization based on bytes of data
   help        Help about any command
-  trend       Analyze the trend of programming languages used in repos across an organization over time
+  trend       Analyze the trend of programming languages used in repos across an enterprise or organization over time
 
 Flags:
-      --codeql              Restrict analysis to CodeQL-supported languages
-  -e, --enterprise string   Specify the enterprise
-  -h, --help                help for language
-  -l, --language string     The language to filter on (case-sensitive)
-  -o, --org string          Specify the organization
-      --org-limit int       The maximum number of organizations to evaluate for an enterprise (default 5)
-      --repo-limit int      The maximum number of repositories to evaluate per organization (default 10)
-  -t, --top int             Return the top N languages (ignored when a language is specified) (default 10)
+      --codeql                                Restrict analysis to CodeQL-supported languages
+  -e, --enterprise string                     GitHub Enterprise slug (e.g., github)
+  -u, --github-enterprise-server-url string   GitHub Enterprise Server URL (e.g., github.company.com) (default "github.com")
+  -h, --help                                  help for language
+  -l, --language string                       A specific language to filter on (case-sensitive)
+  -o, --org string                            Specify the organization
+      --org-limit int                         The maximum number of organizations to analyze for an enterprise (default 5)
+      --repo-limit int                        The maximum number of repositories to analyze per organization (default 10)
+  -t, --top int                               Return the top N languages (ignored when a language filter is specified) (default 10)
 
-Use "language [command] --help" for more information about a command.
+Use "gh language [command] --help" for more information about a command.
 ```
 
 # License

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/cli/go-gh/v2/pkg/api"
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 )
@@ -30,6 +29,7 @@ func runData(cmd *cobra.Command, args []string) error {
 	top := top_flag
 	language := language_flag
 	unit, _ := cmd.Flags().GetString("unit")
+	hostname := github_enterprise_server_url_flag
 
 	if err := ValidateFlags(org, enterprise); err != nil {
 		return err
@@ -49,7 +49,7 @@ func runData(cmd *cobra.Command, args []string) error {
 		PrintInfoWithFormat("Organization limit: %d, Repository limit: %d, %s", orgLimit, repoLimit, languageFilter)
 		spinnerEnterprise, _ := StartIndexingEnterpriseSpinner(enterprise)
 		var err error
-		orgs, err = FetchOrganizations(enterprise, orgLimit)
+		orgs, err = FetchOrganizations(enterprise, orgLimit, hostname)
 		if err != nil {
 			spinnerEnterprise.Fail("Failed to index organizations for enterprise")
 			return err
@@ -68,7 +68,7 @@ func runData(cmd *cobra.Command, args []string) error {
 	var totalRepos int
 
 	// Create the REST client once.
-	client, err := api.DefaultRESTClient()
+	client, err := CreateRESTClient(hostname)
 	if err != nil {
 		pterm.Error.Println("Failed to create REST client:", err)
 		return err

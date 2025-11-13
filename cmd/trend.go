@@ -26,6 +26,7 @@ func runTrend(cmd *cobra.Command, args []string) error {
 	orgLimit := org_limit_flag
 	top := top_flag
 	language := language_flag
+	hostname := github_enterprise_server_url_flag
 
 	if err := ValidateFlags(org, enterprise); err != nil {
 		return err
@@ -40,7 +41,7 @@ func runTrend(cmd *cobra.Command, args []string) error {
 		PrintInfoWithFormat("Organization limit: %d, Repository limit: %d, %s", orgLimit, repoLimit, languageFilter)
 		spinnerEnterprise, _ := StartIndexingEnterpriseSpinner(enterprise)
 		var err error
-		orgs, err = FetchOrganizations(enterprise, orgLimit)
+		orgs, err = FetchOrganizations(enterprise, orgLimit, hostname)
 		if err != nil {
 			spinnerEnterprise.Fail("Failed to index organizations for enterprise")
 			return err
@@ -68,7 +69,7 @@ func runTrend(cmd *cobra.Command, args []string) error {
 		spinnerInfo, _ := pterm.DefaultSpinner.Start(fmt.Sprintf("Indexing organization: %s", org))
 
 		// First, count the total number of repositories in the organization
-		totalReposInOrg, err := CountRepositoriesGraphQL(org)
+		totalReposInOrg, err := CountRepositoriesGraphQL(org, hostname)
 		if err != nil {
 			// Stop the spinner and indicate failure if an error occurs.
 			spinnerInfo.Fail("Failed to index organization")
@@ -91,7 +92,7 @@ func runTrend(cmd *cobra.Command, args []string) error {
 		spinnerInfo.Success(fmt.Sprintf("Successfully indexed organization %d of %d: %s (%d repositories, limited to %d)", orgIndex+1, len(orgs), org, totalReposInOrg, effectiveRepoCount))
 
 		// Fetch repositories with languages using GraphQL API with progress bar.
-		repos, err := FetchRepositoriesGraphQL(org, repoLimit, totalReposInOrg)
+		repos, err := FetchRepositoriesGraphQL(org, repoLimit, totalReposInOrg, hostname)
 		if err != nil {
 			return err
 		}

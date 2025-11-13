@@ -13,12 +13,20 @@ import (
 	"github.com/pterm/pterm"
 )
 
+// CreateRESTClient creates a REST client with the specified hostname.
+func CreateRESTClient(hostname string) (*api.RESTClient, error) {
+	opts := api.ClientOptions{
+		Host: hostname,
+	}
+	return api.NewRESTClient(opts)
+}
+
 func Red(s string) string {
 	return "\x1b[31m" + s + "\x1b[m"
 }
 
 // FetchOrganizations fetches organizations for a given enterprise using the GitHub GraphQL API.
-func FetchOrganizations(enterprise string, orgLimit int) ([]string, error) {
+func FetchOrganizations(enterprise string, orgLimit int, hostname string) ([]string, error) {
 	if enterprise == "" {
 		return nil, fmt.Errorf("--enterprise flag is required")
 	}
@@ -48,7 +56,7 @@ func FetchOrganizations(enterprise string, orgLimit int) ([]string, error) {
 			}
 		}`
 
-		response, stderr, err := gh.Exec("api", "graphql", "-f", "query="+query)
+		response, stderr, err := gh.Exec("api", "graphql", "--hostname", hostname, "-f", "query="+query)
 		if err != nil {
 			pterm.Error.Printf("Failed to fetch organizations for enterprise '%s': %v\n", enterprise, err)
 			pterm.Error.Printf("GraphQL query: %s\n", query)
@@ -285,7 +293,7 @@ func FetchLanguages(client *api.RESTClient, org, repo string) (map[string]int, e
 }
 
 // FetchRepositoriesGraphQL fetches repositories with languages for a given organization using GraphQL API with pagination.
-func FetchRepositoriesGraphQL(org string, limit int, totalRepos int) ([]struct {
+func FetchRepositoriesGraphQL(org string, limit int, totalRepos int, hostname string) ([]struct {
 	Name      string              `json:"name"`
 	CreatedAt string              `json:"created_at"`
 	Languages map[string]struct{} `json:"languages"`
@@ -343,7 +351,7 @@ func FetchRepositoriesGraphQL(org string, limit int, totalRepos int) ([]struct {
 			}
 		}`, org, remaining, formatCursor(cursor))
 
-		response, stderr, err := gh.Exec("api", "graphql", "-f", "query="+query)
+		response, stderr, err := gh.Exec("api", "graphql", "--hostname", hostname, "-f", "query="+query)
 		if err != nil {
 			progressBar.Stop()
 			pterm.Error.Printf("Failed to fetch repositories for organization '%s': %v\n", org, err)
@@ -429,7 +437,7 @@ func FetchRepositoriesGraphQL(org string, limit int, totalRepos int) ([]struct {
 }
 
 // CountRepositoriesGraphQL counts the total number of repositories in an organization using GraphQL API.
-func CountRepositoriesGraphQL(org string) (int, error) {
+func CountRepositoriesGraphQL(org string, hostname string) (int, error) {
 	if org == "" {
 		return 0, fmt.Errorf("no organization identified, please ensure you have access to the organization or enterprise provided")
 	}
@@ -442,7 +450,7 @@ func CountRepositoriesGraphQL(org string) (int, error) {
 		}
 	}`, org)
 
-	response, stderr, err := gh.Exec("api", "graphql", "-f", "query="+query)
+	response, stderr, err := gh.Exec("api", "graphql", "--hostname", hostname, "-f", "query="+query)
 	if err != nil {
 		pterm.Error.Printf("Failed to count repositories for organization '%s': %v\n", org, err)
 		pterm.Error.Printf("GraphQL query: %s\n", query)
