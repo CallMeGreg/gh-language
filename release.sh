@@ -1,4 +1,4 @@
-export version=v3.0.0
+export version=v3.0.1
 git switch main
 git pull
 git tag $version
