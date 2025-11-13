@@ -18,7 +18,7 @@ var countCmd = &cobra.Command{
 
 func runCount(cmd *cobra.Command, args []string) error {
 	org := org_flag
-	enterprise := enterprise_slug_flag
+	enterprise := enterprise_flag
 	repoLimit := repo_limit_flag
 	orgLimit := org_limit_flag
 	top := top_flag

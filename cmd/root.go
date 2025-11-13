@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var enterprise_slug_flag string
+var enterprise_flag string
 var org_flag string
 var org_limit_flag int
 var repo_limit_flag int
@@ -24,7 +24,7 @@ var RootCmd = &cobra.Command{
 func _root() error {
 	RootCmd.CompletionOptions.DisableDefaultCmd = true
 
-	RootCmd.PersistentFlags().StringVarP(&enterprise_slug_flag, "enterprise-slug", "e", "", "GitHub Enterprise slug (e.g., github)")
+	RootCmd.PersistentFlags().StringVarP(&enterprise_flag, "enterprise", "e", "", "GitHub Enterprise slug (e.g., github)")
 	RootCmd.PersistentFlags().StringVarP(&org_flag, "org", "o", "", "Specify the organization")
 	RootCmd.PersistentFlags().IntVar(&org_limit_flag, "org-limit", 5, "The maximum number of organizations to analyze for an enterprise")
 	RootCmd.PersistentFlags().IntVar(&repo_limit_flag, "repo-limit", 10, "The maximum number of repositories to analyze per organization")
@@ -33,7 +33,7 @@ func _root() error {
 	RootCmd.PersistentFlags().BoolVar(&codeql_flag, "codeql", false, "Restrict analysis to CodeQL-supported languages (mutually exclusive with --language)")
 	RootCmd.PersistentFlags().StringVarP(&github_enterprise_server_url_flag, "github-enterprise-server-url", "u", "github.com", "GitHub Enterprise Server URL (e.g., github.company.com)")
 
-	RootCmd.MarkFlagsMutuallyExclusive("enterprise-slug", "org")
+	RootCmd.MarkFlagsMutuallyExclusive("enterprise", "org")
 	RootCmd.MarkFlagsMutuallyExclusive("top", "language", "codeql")
 
 	RootCmd.AddCommand(countCmd)
