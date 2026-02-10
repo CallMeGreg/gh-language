@@ -1,18 +1,111 @@
-name: release
+name: Release
+
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
+
 permissions:
   contents: write
   id-token: write
   attestations: write
+  pull-requests: read
 
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5.0.0
+      - uses: actions/checkout@v6.0.1
+        with:
+          fetch-depth: 0
+      
+      - name: Determine release type
+        id: release_type
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Get the PR number from the merge commit
+          PR_NUMBER=$(gh pr list --state merged --search "${{ github.sha }}" --json number --jq '.[0].number')
+          
+          if [ -z "$PR_NUMBER" ]; then
+            echo "No PR found for this commit, defaulting to patch"
+            echo "type=patch" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Get PR details
+          PR_AUTHOR=$(gh pr view "$PR_NUMBER" --json author --jq '.author.login')
+          PR_BODY=$(gh pr view "$PR_NUMBER" --json body --jq '.body')
+          
+          # Check if PR was opened by Dependabot
+          if [[ "$PR_AUTHOR" == "dependabot"* ]]; then
+            echo "Dependabot PR detected, using patch release"
+            echo "type=patch" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Look for Release Type section in PR body
+          RELEASE_TYPE="patch"
+          
+          # Check for checked boxes in Release Type section (case-insensitive)
+          if echo "$PR_BODY" | grep -qi "## Release Type"; then
+            # Extract the Release Type section (from header to next ## or end)
+            RELEASE_SECTION=$(echo "$PR_BODY" | sed -n '/## Release Type/,/^##/p' | sed '$d')
+            
+            # Check for checked boxes (supports [x], [X])
+            if echo "$RELEASE_SECTION" | grep -Eq '\[[xX]\].*[Mm]ajor'; then
+              RELEASE_TYPE="major"
+            elif echo "$RELEASE_SECTION" | grep -Eq '\[[xX]\].*[Mm]inor'; then
+              RELEASE_TYPE="minor"
+            elif echo "$RELEASE_SECTION" | grep -Eq '\[[xX]\].*[Pp]atch'; then
+              RELEASE_TYPE="patch"
+            fi
+          fi
+          
+          echo "Detected release type: $RELEASE_TYPE"
+          echo "type=$RELEASE_TYPE" >> $GITHUB_OUTPUT
+      
+      - name: Calculate next version
+        id: next_version
+        run: |
+          # Get the latest tag
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "Latest tag: $LATEST_TAG"
+          
+          # Strip 'v' prefix and split into parts
+          VERSION=${LATEST_TAG#v}
+          MAJOR=$(echo $VERSION | cut -d. -f1)
+          MINOR=$(echo $VERSION | cut -d. -f2)
+          PATCH=$(echo $VERSION | cut -d. -f3)
+          
+          # Increment based on release type
+          RELEASE_TYPE="${{ steps.release_type.outputs.type }}"
+          case $RELEASE_TYPE in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              ;;
+          esac
+          
+          NEXT_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "Next version: $NEXT_VERSION"
+          echo "version=$NEXT_VERSION" >> $GITHUB_OUTPUT
+      
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.next_version.outputs.version }}
+          git push origin ${{ steps.next_version.outputs.version }}
+      
       - uses: cli/gh-extension-precompile@v2.1.0
         with:
           go_version_file: go.mod
