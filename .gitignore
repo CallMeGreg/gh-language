@@ -20,5 +20,3 @@ go.work
 # Executable
 /gh-language
 /gh-language.exe
-
-gh-language-*

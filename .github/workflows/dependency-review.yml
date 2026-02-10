@@ -1,0 +1,22 @@
+name: Dependency Review
+
+on: [pull_request]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6.0.1
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4.8.2
+        with:
+          # Block pull requests with vulnerabilities at moderate severity or higher
+          fail-on-severity: low
+          # Post detailed summary in PR comments
+          comment-summary-in-pr: on-failure
