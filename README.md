@@ -64,6 +64,8 @@ When the `--codeql` flag is set, the analysis will only include the following la
 - TypeScript
 - Vue
 
+When used with the `count` command, the `--codeql` flag will also display the number of unique repositories that include at least one CodeQL-supported language.
+
 ## Count command
 
 Display the count of each programming language used in repos across an enterprise or organization.
