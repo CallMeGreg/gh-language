@@ -13,6 +13,9 @@ import (
 
 const GITHUB_TIMESTAMP_LAYOUT = "2006-01-02T15:04:05Z"
 
+// MAX_GRAPH_SERIES limits the number of language series shown in the line graph for readability.
+const MAX_GRAPH_SERIES = 6
+
 var trendCmd = &cobra.Command{
 	Use:   "trend",
 	Short: "Analyze the trend of programming languages used in repos across an enterprise or organization over time",
@@ -59,6 +62,19 @@ func topLanguageNames(trendData map[string]int, language string, top int) []stri
 		names[i] = sorted[i].Language
 	}
 	return names
+}
+
+// barColors returns a cycling list of pterm styles for bar chart bars.
+func barColors() []*pterm.Style {
+	return []*pterm.Style{
+		pterm.NewStyle(pterm.FgCyan),
+		pterm.NewStyle(pterm.FgGreen),
+		pterm.NewStyle(pterm.FgYellow),
+		pterm.NewStyle(pterm.FgMagenta),
+		pterm.NewStyle(pterm.FgRed),
+		pterm.NewStyle(pterm.FgBlue),
+		pterm.NewStyle(pterm.FgWhite),
+	}
 }
 
 // graphColors returns a cycling list of asciigraph colors for series lines.
@@ -269,15 +285,7 @@ func renderBarChart(languageMapPerYear map[int]map[string]int, years []int, topL
 	pterm.DefaultSection.Println(fmt.Sprintf("Top Languages — %d (Bar Chart)", latestYear))
 
 	// Build bars from the top languages in the most recent year.
-	barColors := []*pterm.Style{
-		pterm.NewStyle(pterm.FgCyan),
-		pterm.NewStyle(pterm.FgGreen),
-		pterm.NewStyle(pterm.FgYellow),
-		pterm.NewStyle(pterm.FgMagenta),
-		pterm.NewStyle(pterm.FgRed),
-		pterm.NewStyle(pterm.FgBlue),
-		pterm.NewStyle(pterm.FgWhite),
-	}
+	colors := barColors()
 
 	bars := pterm.Bars{}
 	for i, lang := range topLangs {
@@ -288,7 +296,7 @@ func renderBarChart(languageMapPerYear map[int]map[string]int, years []int, topL
 		bars = append(bars, pterm.Bar{
 			Label: lang,
 			Value: count,
-			Style: barColors[i%len(barColors)],
+			Style: colors[i%len(colors)],
 		})
 	}
 
@@ -306,7 +314,7 @@ func renderLineGraph(languageMapPerYear map[int]map[string]int, years []int, top
 	pterm.DefaultSection.Println("Language Trends Over Time (Line Graph)")
 
 	// Limit to a manageable number of series for readability.
-	maxSeries := 6
+	maxSeries := MAX_GRAPH_SERIES
 	if len(topLangs) < maxSeries {
 		maxSeries = len(topLangs)
 	}
