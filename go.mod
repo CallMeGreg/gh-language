@@ -4,6 +4,7 @@ go 1.23.0
 
 require (
 	github.com/cli/go-gh/v2 v2.12.1
+	github.com/guptarohit/asciigraph v0.8.1
 	github.com/pterm/pterm v0.12.80
 	github.com/spf13/cobra v1.9.1
 )
@@ -17,7 +18,6 @@ require (
 	github.com/cli/shurcooL-graphql v0.0.4 // indirect
 	github.com/containerd/console v1.0.5 // indirect
 	github.com/gookit/color v1.5.4 // indirect
-	github.com/guptarohit/asciigraph v0.8.1 // indirect
 	github.com/henvic/httpretty v0.1.4 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/lithammer/fuzzysearch v1.1.8 // indirect
