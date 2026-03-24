@@ -110,6 +110,11 @@ func runCount(cmd *cobra.Command, args []string) error {
 	// Print the total number of repositories analyzed.
 	pterm.Println() // Add a new line
 	pterm.Info.Println(fmt.Sprintf("Total number of repositories analyzed: %d", totalRepos))
+
+	// Print the number of unique repos with at least one CodeQL-supported language.
+	if codeql_flag {
+		pterm.Info.Println(fmt.Sprintf("Unique repositories with at least one CodeQL-supported language: %d", codeqlRepos))
+	}
 	pterm.Println() // Add a new line
 
 	// Filter language data if a specific language is specified.
@@ -186,12 +191,6 @@ func runCount(cmd *cobra.Command, args []string) error {
 
 		return rows
 	}()).Render()
-
-	// Print the number of unique repos with at least one CodeQL-supported language.
-	if codeql_flag {
-		pterm.Println() // Add a new line
-		pterm.Info.Println(fmt.Sprintf("Unique repositories with at least one CodeQL-supported language: %d", codeqlRepos))
-	}
 
 	return nil
 }
