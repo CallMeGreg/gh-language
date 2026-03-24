@@ -75,7 +75,13 @@ https://github.com/user-attachments/assets/27c0a12f-1643-4483-aeae-95aa61165879
 
 ## Trend command
 
-Display the breakdown of programming languages used in repos across an enterprise or organization per year, based on the repo creation date.
+Display the breakdown of programming languages used in repos across an enterprise or organization per year, based on the repo creation date. The output includes:
+
+- **Trend Summary Table** — A high-level view of each top language with color-coded trend indicators (▲ rising, ▼ falling, ● unchanged) and year-over-year change.
+- **Horizontal Bar Chart** — A visual comparison of language counts for the most recent year, powered by [pterm](https://github.com/pterm/pterm).
+- **Line Graph** — A multi-series ASCII line chart (via [asciigraph](https://github.com/guptarohit/asciigraph)) showing how each language's adoption has changed over time.
+- **Year-by-Year Breakdown** — Detailed per-year tables with trend direction and year-over-year deltas compared to the prior year.
+
 ```
 gh language trend --enterprise YOUR_ENTERPRISE_SLUG
 ```
