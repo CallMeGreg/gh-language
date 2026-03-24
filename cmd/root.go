@@ -28,9 +28,9 @@ func _root() error {
 	RootCmd.PersistentFlags().StringVarP(&org_flag, "org", "o", "", "Specify the organization")
 	RootCmd.PersistentFlags().IntVar(&org_limit_flag, "org-limit", 5, "The maximum number of organizations to analyze for an enterprise")
 	RootCmd.PersistentFlags().IntVar(&repo_limit_flag, "repo-limit", 10, "The maximum number of repositories to analyze per organization")
-	RootCmd.PersistentFlags().IntVarP(&top_flag, "top", "t", 10, "Return the top N languages (ignored when a language filter is specified)")
-	RootCmd.PersistentFlags().StringVarP(&language_flag, "language", "l", "", "A specific language to filter on (case-sensitive, mutually exclusive with --codeql)")
-	RootCmd.PersistentFlags().BoolVar(&codeql_flag, "codeql", false, "Restrict analysis to CodeQL-supported languages (mutually exclusive with --language)")
+	RootCmd.PersistentFlags().IntVarP(&top_flag, "top", "t", 10, "Return the top N languages (mutually exclusive with --language, --codeql)")
+	RootCmd.PersistentFlags().StringVarP(&language_flag, "language", "l", "", "A comma-separated list of languages to filter on (case-sensitive, mutually exclusive with --codeql, --top)")
+	RootCmd.PersistentFlags().BoolVar(&codeql_flag, "codeql", false, "Restrict analysis to CodeQL-supported languages (mutually exclusive with --language, --top)")
 	RootCmd.PersistentFlags().StringVarP(&github_enterprise_server_url_flag, "github-enterprise-server-url", "u", "github.com", "GitHub Enterprise Server URL (e.g., github.company.com)")
 
 	RootCmd.MarkFlagsMutuallyExclusive("enterprise", "org")

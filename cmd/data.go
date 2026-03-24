@@ -126,12 +126,12 @@ func runData(cmd *cobra.Command, args []string) error {
 	pterm.Info.Println(fmt.Sprintf("Total number of repositories analyzed: %d", totalRepos))
 	pterm.Println() // Add a new line
 
-	// Filter language data if a specific language is specified.
+	// Filter language data if specific languages are specified.
 	if language != "" {
-		// Create a new map to store only the filtered language data.
+		languages := ParseLanguages(language)
 		filteredLanguageData := make(map[string]int)
 		for lang, bytes := range languageData {
-			if lang == language {
+			if MatchesLanguageFilter(lang, languages) {
 				filteredLanguageData[lang] = bytes
 			}
 		}

@@ -4,6 +4,7 @@ go 1.23.0
 
 require (
 	github.com/cli/go-gh/v2 v2.12.1
+	github.com/guptarohit/asciigraph v0.8.1
 	github.com/pterm/pterm v0.12.80
 	github.com/spf13/cobra v1.9.1
 )

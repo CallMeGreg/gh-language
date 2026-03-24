@@ -117,12 +117,12 @@ func runCount(cmd *cobra.Command, args []string) error {
 	}
 	pterm.Println() // Add a new line
 
-	// Filter language data if a specific language is specified.
+	// Filter language data if specific languages are specified.
 	if language != "" {
-		// Create a new map to store only the filtered language data.
+		languages := ParseLanguages(language)
 		filteredLanguageData := make(map[string]int)
 		for lang, count := range languageData {
-			if lang == language {
+			if MatchesLanguageFilter(lang, languages) {
 				filteredLanguageData[lang] = count
 			}
 		}

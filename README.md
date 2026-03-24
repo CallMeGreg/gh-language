@@ -42,7 +42,7 @@ The following flags are available for all commands:
 - `--org-limit`: Limit the number of organizations to analyze (default is 5).
 - `--repo-limit`: Limit the number of repositories to analyze per organization (default is 10).
 - `--top`: Return the top N languages (default is 10).
-- `--language`: Filter results by a specific programming language (case-sensitive).
+- `--language`: Filter results by one or more programming languages, specified as a comma-separated list (case-sensitive).
 - `--codeql`: Restrict analysis to CodeQL-supported languages.
 - `--github-enterprise-server-url` (`-u`): GitHub Enterprise Server URL (e.g., github.company.com) (default is "github.com").
 
@@ -77,9 +77,23 @@ https://github.com/user-attachments/assets/27c0a12f-1643-4483-aeae-95aa61165879
 
 ## Trend command
 
-Display the breakdown of programming languages used in repos across an enterprise or organization per year, based on the repo creation date.
+Display the breakdown of programming languages used in repos across an enterprise or organization per year, based on the repo creation date. The output includes:
+
+- **Trend Summary Table** — A high-level view of each top language with color-coded trend indicators (▲ rising, ▼ falling, ● unchanged) and year-over-year change.
+- **Horizontal Bar Chart** — A visual comparison of language counts for the most recent year, powered by [pterm](https://github.com/pterm/pterm).
+- **Line Graph** — A multi-series ASCII line chart (via [asciigraph](https://github.com/guptarohit/asciigraph)) showing how each language's adoption has changed over time.
+- **Year-by-Year Breakdown** — Detailed per-year tables with trend direction and year-over-year deltas compared to the prior year.
+
 ```
 gh language trend --enterprise YOUR_ENTERPRISE_SLUG
+```
+
+The `trend` command also supports optional year range filtering:
+- `--min-year`: Only include years greater than or equal to this value.
+- `--max-year`: Only include years less than or equal to this value.
+
+```
+gh language trend --enterprise YOUR_ENTERPRISE_SLUG --min-year 2020 --max-year 2024
 ```
 
 https://github.com/user-attachments/assets/33c1f4ac-57d9-4ed9-a696-0eb845cd6638
@@ -104,9 +118,9 @@ Analyze the top 20 languages used across all repositories in an enterprise:
 gh language count --enterprise YOUR_ENTERPRISE_SLUG --org-limit 1000000 --repo-limit 1000000 --top 20
 ```
 
-Analyze the trend of Rust usage in repositories across an organization, limited to the first 100 repositories:
+Analyze the trend of Rust and Go usage in repositories across an organization, limited to the first 100 repositories:
 ```
-gh language trend --org YOUR_ORG_SLUG --repo-limit 100 --language Rust
+gh language trend --org YOUR_ORG_SLUG --repo-limit 100 --language Rust,Go
 ```
 
 Analyze the top 5 languages, based on data size, in megabytes, used across all repositories in an organization:
@@ -153,15 +167,15 @@ Available Commands:
   trend       Analyze the trend of programming languages used in repos across an enterprise or organization over time
 
 Flags:
-      --codeql                                Restrict analysis to CodeQL-supported languages
+      --codeql                                Restrict analysis to CodeQL-supported languages (mutually exclusive with --language, --top)
   -e, --enterprise string                     GitHub Enterprise slug (e.g., github)
   -u, --github-enterprise-server-url string   GitHub Enterprise Server URL (e.g., github.company.com) (default "github.com")
   -h, --help                                  help for language
-  -l, --language string                       A specific language to filter on (case-sensitive)
+  -l, --language string                       A comma-separated list of languages to filter on (case-sensitive, mutually exclusive with --codeql, --top)
   -o, --org string                            Specify the organization
       --org-limit int                         The maximum number of organizations to analyze for an enterprise (default 5)
       --repo-limit int                        The maximum number of repositories to analyze per organization (default 10)
-  -t, --top int                               Return the top N languages (ignored when a language filter is specified) (default 10)
+  -t, --top int                               Return the top N languages (mutually exclusive with --language, --codeql) (default 10)
 
 Use "gh language [command] --help" for more information about a command.
 ```

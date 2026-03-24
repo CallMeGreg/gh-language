@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cli/go-gh/v2"
@@ -260,6 +261,32 @@ func PrintTotalRepositories(total int) {
 	pterm.Println() // Add a new line
 	PrintInfoWithFormat("Total number of repositories analyzed: %d", total)
 	pterm.Println() // Add a new line
+}
+
+// ParseLanguages splits a comma-separated language string into a slice of trimmed language names.
+func ParseLanguages(language string) []string {
+	if language == "" {
+		return nil
+	}
+	parts := strings.Split(language, ",")
+	var languages []string
+	for _, p := range parts {
+		trimmed := strings.TrimSpace(p)
+		if trimmed != "" {
+			languages = append(languages, trimmed)
+		}
+	}
+	return languages
+}
+
+// MatchesLanguageFilter checks if a language name is in the filter list.
+func MatchesLanguageFilter(lang string, languages []string) bool {
+	for _, l := range languages {
+		if l == lang {
+			return true
+		}
+	}
+	return false
 }
 
 // ValidateFlags checks if the required flags are set and returns an error if not.
