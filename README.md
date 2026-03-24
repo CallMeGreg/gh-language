@@ -64,90 +64,73 @@ When the `--codeql` flag is set, the analysis will only include the following la
 - TypeScript
 - Vue
 
-When used with the `count` command, the `--codeql` flag will also display the number of unique repositories that include at least one CodeQL-supported language.
-
 ## Count command
 
 Display the count of each programming language used in repos across an enterprise or organization.
 ```
-gh language count --enterprise YOUR_ENTERPRISE_SLUG
+gh language count --org microsoft
 ```
 
-https://github.com/user-attachments/assets/27c0a12f-1643-4483-aeae-95aa61165879
+![count](demo/count.gif)
+
+When the `--codeql` flag is set, the analysis will filter for only CodeQL-supported languages, and also display the number of unique repositories that include at least one CodeQL-supported language:
+```
+gh language count --org microsoft --repo-limit 300 --codeql
+```
+
+![count-codeql](demo/count-codeql.gif)
 
 ## Trend command
 
 Display the breakdown of programming languages used in repos across an enterprise or organization per year, based on the repo creation date. The output includes:
 
-- **Trend Summary Table** — A high-level view of each top language with color-coded trend indicators (▲ rising, ▼ falling, ● unchanged) and year-over-year change.
-- **Horizontal Bar Chart** — A visual comparison of language counts for the most recent year, powered by [pterm](https://github.com/pterm/pterm).
-- **Line Graph** — A multi-series ASCII line chart (via [asciigraph](https://github.com/guptarohit/asciigraph)) showing how each language's adoption has changed over time.
+- **Line Graph** — A multi-series line chart showing how each language's adoption has changed over time.
 - **Year-by-Year Breakdown** — Detailed per-year tables with trend direction and year-over-year deltas compared to the prior year.
 
 ```
-gh language trend --enterprise YOUR_ENTERPRISE_SLUG
+gh language trend --org microsoft
 ```
+
+![trend](demo/trend.gif)
 
 The `trend` command also supports optional year range filtering:
 - `--min-year`: Only include years greater than or equal to this value.
-- `--max-year`: Only include years less than or equal to this value.
+- `--max-year`: Only include years less than or equal to this value (defaults to last year).
 
 ```
-gh language trend --enterprise YOUR_ENTERPRISE_SLUG --min-year 2020 --max-year 2024
+gh language trend --org microsoft --repo-limit 500 --max-year 2015
 ```
 
-https://github.com/user-attachments/assets/33c1f4ac-57d9-4ed9-a696-0eb845cd6638
+![trend-filtered](demo/trend-filtered.gif)
 
 ## Data command
 
 Analyze languages by bytes of data, rather than count, across repositories in an enterprise or organization.
 ```
-gh language data --enterprise YOUR_ENTERPRISE_SLUG
+gh language data --org microsoft
 ```
 
-Specify the unit for displaying data with the `--unit` flag. Supported units are `bytes`, `kilobytes`, `megabytes`, and `gigabytes`. The default is `bytes`.:
+![data](demo/data.gif)
+
+Specify the unit for displaying data with the `--unit` flag. Supported units are `bytes`, `kilobytes`, `megabytes`, and `gigabytes`. The default is `bytes`:
 ```
-gh language data --enterprise YOUR_ENTERPRISE_SLUG --unit megabytes
+gh language data --org microsoft --unit megabytes
 ```
 
-https://github.com/user-attachments/assets/435f1d81-2d56-4320-b3dd-7f8d6f2472bb
+## Targeting a GitHub Enterprise Server instance
 
-## Example Usage
-Analyze the top 20 languages used across all repositories in an enterprise:
+To target a GitHub Enterprise Server instance, use the `--github-enterprise-server-url` (`-u`) flag with any command. For example, to count languages across all repositories in an enterprise:
 ```
-gh language count --enterprise YOUR_ENTERPRISE_SLUG --org-limit 1000000 --repo-limit 1000000 --top 20
-```
-
-Analyze the trend of Rust and Go usage in repositories across an organization, limited to the first 100 repositories:
-```
-gh language trend --org YOUR_ORG_SLUG --repo-limit 100 --language Rust,Go
+gh language count --enterprise github -u callmegreg-phw3fn.ghe-test.net --org-limit 1000000 --repo-limit 1000000
 ```
 
-Analyze the top 5 languages, based on data size, in megabytes, used across all repositories in an organization:
-```
-gh language data --org YOUR_ORG_SLUG --repo-limit 1000000 --top 5 --unit megabytes
-```
-
-Analyze all CodeQL-supported languages in an enterprise across all repositories:
-```
-gh language count --enterprise YOUR_ENTERPRISE_SLUG --org-limit 1000000 --repo-limit 1000000 --codeql
-```
-
-Analyze languages in an organization on a GitHub Enterprise Server instance:
-```
-gh language count --org YOUR_ORG_SLUG --github-enterprise-server-url ghes.example.com --repo-limit 1000000
-```
-
-https://github.com/user-attachments/assets/bb8f9ccb-9f71-40b2-9dc4-8d1e34476afd
+![ghes](demo/ghes.gif)
 
 ## Performance
 
-The `count` and `trend` commands have been optimized to use GitHub's GraphQL API, which provides significant performance improvements over the REST API:
+The `count` and `trend` commands have been optimized to use GitHub's GraphQL API, which provides significant performance improvements over the REST API. These commands are expected to run ~100x faster than `data`.
 
-- **Reduced API calls**: GraphQL fetches repository and language data for 100 repositoreis in a single request, compared to the REST API which requires a single request for each repository.
-- **Better rate limiting**: GraphQL API has different rate limits than REST API, often allowing for more processing before hitting limits
-
-The `data` command continues to use the REST API as it requires detailed byte-level language statistics that are only available through the REST endpoints.
+The `data` command continues to use the REST API as it requires detailed byte-level language statistics that are only available through the REST endpoint.
 
 ## Help
 
