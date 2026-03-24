@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/guptarohit/asciigraph"
@@ -14,7 +13,15 @@ import (
 const GITHUB_TIMESTAMP_LAYOUT = "2006-01-02T15:04:05Z"
 
 // MAX_GRAPH_SERIES limits the number of language series shown in the line graph for readability.
-const MAX_GRAPH_SERIES = 6
+const MAX_GRAPH_SERIES = 10
+
+var min_year_flag int
+var max_year_flag int
+
+func init() {
+	trendCmd.Flags().IntVar(&min_year_flag, "min-year", 0, "Minimum year to include in the trend output")
+	trendCmd.Flags().IntVar(&max_year_flag, "max-year", time.Now().Year()-1, "Maximum year to include in the trend output (defaults to last year)")
+}
 
 var trendCmd = &cobra.Command{
 	Use:   "trend",
@@ -44,9 +51,10 @@ func topLanguageNames(trendData map[string]int, language string, top int) []stri
 		Language string
 		Count    int
 	}
+	languages := ParseLanguages(language)
 	sorted := make([]langCount, 0, len(trendData))
 	for lang, count := range trendData {
-		if language != "" && lang != language {
+		if len(languages) > 0 && !MatchesLanguageFilter(lang, languages) {
 			continue
 		}
 		sorted = append(sorted, langCount{lang, count})
@@ -64,19 +72,6 @@ func topLanguageNames(trendData map[string]int, language string, top int) []stri
 	return names
 }
 
-// barColors returns a cycling list of pterm styles for bar chart bars.
-func barColors() []*pterm.Style {
-	return []*pterm.Style{
-		pterm.NewStyle(pterm.FgCyan),
-		pterm.NewStyle(pterm.FgGreen),
-		pterm.NewStyle(pterm.FgYellow),
-		pterm.NewStyle(pterm.FgMagenta),
-		pterm.NewStyle(pterm.FgRed),
-		pterm.NewStyle(pterm.FgBlue),
-		pterm.NewStyle(pterm.FgWhite),
-	}
-}
-
 // graphColors returns a cycling list of asciigraph colors for series lines.
 func graphColors() []asciigraph.AnsiColor {
 	return []asciigraph.AnsiColor{
@@ -86,6 +81,10 @@ func graphColors() []asciigraph.AnsiColor {
 		asciigraph.Blue,
 		asciigraph.Cyan,
 		asciigraph.White,
+		asciigraph.DarkOrange,
+		asciigraph.BlueViolet,
+		asciigraph.Coral,
+		asciigraph.Chartreuse,
 	}
 }
 
@@ -100,6 +99,10 @@ func runTrend(cmd *cobra.Command, args []string) error {
 
 	if err := ValidateFlags(org, enterprise); err != nil {
 		return err
+	}
+
+	if min_year_flag > 0 && max_year_flag > 0 && min_year_flag > max_year_flag {
+		return fmt.Errorf("--min-year (%d) cannot be greater than --max-year (%d)", min_year_flag, max_year_flag)
 	}
 
 	var orgs []string
@@ -127,6 +130,9 @@ func runTrend(cmd *cobra.Command, args []string) error {
 
 	// Initialize a map to store language data per year.
 	languageMapPerYear := make(map[int]map[string]int)
+
+	// Initialize a map to store number of repos per year.
+	reposPerYear := make(map[int]int)
 
 	// Initialize trendData as a map to store language trends.
 	trendData := make(map[string]int)
@@ -186,6 +192,7 @@ func runTrend(cmd *cobra.Command, args []string) error {
 
 			// Group the language data by year. This requires extracting the year from the repository's creation date.
 			creationYear := createdAt.Year()
+			reposPerYear[creationYear]++
 			if languageMapPerYear[creationYear] == nil {
 				languageMapPerYear[creationYear] = make(map[string]int)
 			}
@@ -208,6 +215,21 @@ func runTrend(cmd *cobra.Command, args []string) error {
 	}
 	sort.Ints(years)
 
+	// Filter years based on min-year and max-year flags.
+	if min_year_flag > 0 || max_year_flag > 0 {
+		filtered := make([]int, 0, len(years))
+		for _, y := range years {
+			if min_year_flag > 0 && y < min_year_flag {
+				continue
+			}
+			if max_year_flag > 0 && y > max_year_flag {
+				continue
+			}
+			filtered = append(filtered, y)
+		}
+		years = filtered
+	}
+
 	if codeql_flag {
 		for year, langMap := range languageMapPerYear {
 			languageMapPerYear[year] = IsCodeQLLanguage(langMap)
@@ -217,108 +239,45 @@ func runTrend(cmd *cobra.Command, args []string) error {
 	// Determine the top languages to focus on.
 	topLangs := topLanguageNames(trendData, language, top)
 
-	// ── Section 1: Trend Summary Table ──────────────────────────────
-	// Shows each language with its latest-year count, year-over-year change,
-	// and a trend indicator arrow.
-	renderTrendSummary(languageMapPerYear, years, topLangs, totalRepos)
-
-	// ── Section 2: Horizontal Bar Chart ─────────────────────────────
-	// Visual bar chart for the most recent year's top languages.
-	if len(years) > 0 {
-		renderBarChart(languageMapPerYear, years, topLangs)
-	}
-
-	// ── Section 3: Multi-series Line Graph ──────────────────────────
+	// ── Section 1: Multi-series Line Graph ──────────────────────────
 	// ASCII line chart showing how each top language's count changes over time.
 	if len(years) >= 2 {
 		renderLineGraph(languageMapPerYear, years, topLangs)
 	}
 
-	// ── Section 4: Year-by-Year Detail Tables ───────────────────────
+	// ── Section 2: Year-by-Year Detail Tables ───────────────────────
 	// Detailed per-year tables with trend indicators compared to the prior year.
-	renderYearTables(languageMapPerYear, years, topLangs, totalRepos, language, top)
+	renderYearTables(languageMapPerYear, years, topLangs, reposPerYear, language, top)
 
 	return nil
 }
 
-// renderTrendSummary displays a summary table with trend direction for each language.
-func renderTrendSummary(languageMapPerYear map[int]map[string]int, years []int, topLangs []string, totalRepos int) {
-	pterm.DefaultSection.Println("Language Trend Summary")
-
-	if len(years) == 0 {
-		pterm.Warning.Println("No data available.")
-		return
-	}
-
-	latestYear := years[len(years)-1]
-
-	rows := [][]string{{"Language", "Latest Count", "Trend", "YoY Change", "Percentage"}}
-	for _, lang := range topLangs {
-		latestCount := languageMapPerYear[latestYear][lang]
-
-		// Find the previous year's count.
-		var prevCount int
-		if len(years) >= 2 {
-			prevCount = languageMapPerYear[years[len(years)-2]][lang]
-		}
-
-		arrow, change := trendIndicator(latestCount, prevCount)
-		percentage := 0
-		if totalRepos > 0 {
-			percentage = int(float64(latestCount) / float64(totalRepos) * 100)
-		}
-
-		rows = append(rows, []string{
-			lang,
-			fmt.Sprintf("%d", latestCount),
-			arrow,
-			change,
-			fmt.Sprintf("%d%%", percentage),
-		})
-	}
-	pterm.DefaultTable.WithHasHeader(true).WithData(rows).Render()
-}
-
-// renderBarChart displays a horizontal bar chart for the most recent year.
-func renderBarChart(languageMapPerYear map[int]map[string]int, years []int, topLangs []string) {
-	latestYear := years[len(years)-1]
-	pterm.DefaultSection.Println(fmt.Sprintf("Top Languages — %d (Bar Chart)", latestYear))
-
-	// Build bars from the top languages in the most recent year.
-	colors := barColors()
-
-	bars := pterm.Bars{}
-	for i, lang := range topLangs {
-		count := languageMapPerYear[latestYear][lang]
-		if count == 0 {
-			continue
-		}
-		bars = append(bars, pterm.Bar{
-			Label: lang,
-			Value: count,
-			Style: colors[i%len(colors)],
-		})
-	}
-
-	if len(bars) > 0 {
-		pterm.DefaultBarChart.
-			WithHorizontal(true).
-			WithShowValue(true).
-			WithBars(bars).
-			Render()
-	}
-}
-
 // renderLineGraph displays a multi-series ASCII line graph showing language trends over time.
 func renderLineGraph(languageMapPerYear map[int]map[string]int, years []int, topLangs []string) {
-	pterm.DefaultSection.Println("Language Trends Over Time (Line Graph)")
+	pterm.DefaultSection.Println("Language Trends Over Time (Repo Count Created by Year)")
 
-	// Limit to a manageable number of series for readability.
-	maxSeries := MAX_GRAPH_SERIES
-	if len(topLangs) < maxSeries {
-		maxSeries = len(topLangs)
+	// Rank languages by their count in the max (last) year, descending.
+	maxYear := years[len(years)-1]
+	maxYearData := languageMapPerYear[maxYear]
+
+	type langCount struct {
+		Language string
+		Count    int
 	}
-	langs := topLangs[:maxSeries]
+	ranked := make([]langCount, 0, len(topLangs))
+	for _, lang := range topLangs {
+		ranked = append(ranked, langCount{lang, maxYearData[lang]})
+	}
+	sort.Slice(ranked, func(i, j int) bool { return ranked[i].Count > ranked[j].Count })
+
+	maxSeries := MAX_GRAPH_SERIES
+	if len(ranked) < maxSeries {
+		maxSeries = len(ranked)
+	}
+	langs := make([]string, maxSeries)
+	for i := 0; i < maxSeries; i++ {
+		langs[i] = ranked[i].Language
+	}
 
 	// Build data series: each series is a slice of float64 counts per year (ascending).
 	allSeries := make([][]float64, len(langs))
@@ -330,11 +289,8 @@ func renderLineGraph(languageMapPerYear map[int]map[string]int, years []int, top
 		allSeries[i] = series
 	}
 
-	// Build x-axis label caption showing year markers.
-	yearLabels := make([]string, len(years))
-	for i, y := range years {
-		yearLabels[i] = fmt.Sprintf("%d", y)
-	}
+	// Build x-axis label caption showing first and last year.
+	caption := fmt.Sprintf("%d → %d", years[0], years[len(years)-1])
 
 	colors := graphColors()
 	seriesColors := make([]asciigraph.AnsiColor, len(langs))
@@ -344,7 +300,9 @@ func renderLineGraph(languageMapPerYear map[int]map[string]int, years []int, top
 
 	graph := asciigraph.PlotMany(allSeries,
 		asciigraph.Height(15),
-		asciigraph.Caption(strings.Join(yearLabels, "  →  ")),
+		asciigraph.Width(len(years)*3),
+		asciigraph.Precision(0),
+		asciigraph.Caption(caption),
 		asciigraph.SeriesColors(seriesColors...),
 		asciigraph.SeriesLegends(langs...),
 	)
@@ -353,21 +311,23 @@ func renderLineGraph(languageMapPerYear map[int]map[string]int, years []int, top
 }
 
 // renderYearTables displays detailed per-year tables with trend indicators.
-func renderYearTables(languageMapPerYear map[int]map[string]int, years []int, topLangs []string, totalRepos int, language string, top int) {
+func renderYearTables(languageMapPerYear map[int]map[string]int, years []int, topLangs []string, reposPerYear map[int]int, language string, top int) {
 	pterm.DefaultSection.Println("Year-by-Year Breakdown")
 
 	// Iterate years in descending order for the detail tables.
 	for idx := len(years) - 1; idx >= 0; idx-- {
 		year := years[idx]
-		pterm.DefaultSection.WithLevel(2).Println(fmt.Sprintf("Year: %d", year))
+		yearRepoCount := reposPerYear[year]
+		pterm.DefaultSection.WithLevel(2).Println(fmt.Sprintf("Year: %d (%d repos)", year, yearRepoCount))
 
 		sortedLanguages := make([]struct {
 			Language string
 			Count    int
 		}, 0, len(languageMapPerYear[year]))
 
+		languages := ParseLanguages(language)
 		for lang, count := range languageMapPerYear[year] {
-			if language != "" && lang != language {
+			if len(languages) > 0 && !MatchesLanguageFilter(lang, languages) {
 				continue
 			}
 			sortedLanguages = append(sortedLanguages, struct {
@@ -386,8 +346,8 @@ func renderYearTables(languageMapPerYear map[int]map[string]int, years []int, to
 				break
 			}
 			percentage := 0
-			if totalRepos > 0 {
-				percentage = int(float64(langData.Count) / float64(totalRepos) * 100)
+			if yearRepoCount > 0 {
+				percentage = int(float64(langData.Count) / float64(yearRepoCount) * 100)
 			}
 
 			arrow := ""
