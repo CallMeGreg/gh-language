@@ -193,13 +193,18 @@ func ShowProgressBar(total int, title string) {
 	progressBar.Stop()
 }
 
-// IsCodeQLLanguage filters a map of languages to only include CodeQL-supported languages.
-func IsCodeQLLanguage(languageData map[string]int) map[string]int {
-	allowedLanguages := map[string]bool{
+// GetCodeQLLanguages returns the set of CodeQL-supported languages.
+func GetCodeQLLanguages() map[string]bool {
+	return map[string]bool{
 		"C": true, "C++": true, "C#": true, "Go": true, "HTML": true, "Java": true, "Kotlin": true,
 		"JavaScript": true, "Python": true, "Ruby": true, "Swift": true, "TypeScript": true,
 		"Vue": true,
 	}
+}
+
+// IsCodeQLLanguage filters a map of languages to only include CodeQL-supported languages.
+func IsCodeQLLanguage(languageData map[string]int) map[string]int {
+	allowedLanguages := GetCodeQLLanguages()
 	filteredLanguages := make(map[string]int)
 	for lang, count := range languageData {
 		if allowedLanguages[lang] {
@@ -207,6 +212,17 @@ func IsCodeQLLanguage(languageData map[string]int) map[string]int {
 		}
 	}
 	return filteredLanguages
+}
+
+// HasCodeQLLanguage checks if a set of languages contains at least one CodeQL-supported language.
+func HasCodeQLLanguage(languages map[string]struct{}) bool {
+	allowedLanguages := GetCodeQLLanguages()
+	for lang := range languages {
+		if allowedLanguages[lang] {
+			return true
+		}
+	}
+	return false
 }
 
 // PrintInfo prints an informational message with pterm.

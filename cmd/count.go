@@ -55,6 +55,7 @@ func runCount(cmd *cobra.Command, args []string) error {
 	// Initialize a map to store language data and a counter for total repositories.
 	languageData := make(map[string]int)
 	var totalRepos int
+	var codeqlRepos int
 
 	// Iterate over each organization to fetch repositories and analyze languages.
 	for orgIndex, org := range orgs {
@@ -98,6 +99,10 @@ func runCount(cmd *cobra.Command, args []string) error {
 			// Update the language data map with the fetched data by incrementing the count.
 			for lang := range repo.Languages {
 				languageData[lang]++
+			}
+			// Track repos with at least one CodeQL-supported language.
+			if codeql_flag && HasCodeQLLanguage(repo.Languages) {
+				codeqlRepos++
 			}
 		}
 	}
@@ -181,6 +186,12 @@ func runCount(cmd *cobra.Command, args []string) error {
 
 		return rows
 	}()).Render()
+
+	// Print the number of unique repos with at least one CodeQL-supported language.
+	if codeql_flag {
+		pterm.Println() // Add a new line
+		pterm.Info.Println(fmt.Sprintf("Unique repositories with at least one CodeQL-supported language: %d", codeqlRepos))
+	}
 
 	return nil
 }
