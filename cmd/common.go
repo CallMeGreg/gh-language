@@ -196,9 +196,19 @@ func ShowProgressBar(total int, title string) {
 // GetCodeQLLanguages returns the set of CodeQL-supported languages.
 func GetCodeQLLanguages() map[string]bool {
 	return map[string]bool{
-		"C": true, "C++": true, "C#": true, "Go": true, "HTML": true, "Java": true, "Kotlin": true,
-		"JavaScript": true, "Python": true, "Ruby": true, "Swift": true, "TypeScript": true,
-		"Vue": true,
+		"C":          true,
+		"C++":        true,
+		"C#":         true,
+		"Go":         true,
+		"HTML":       true,
+		"Java":       true,
+		"Kotlin":     true,
+		"JavaScript": true,
+		"Python":     true,
+		"Ruby":       true,
+		"Swift":      true,
+		"TypeScript": true,
+		"Vue":        true,
 	}
 }
 
