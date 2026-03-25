@@ -5,7 +5,7 @@ This is an extension to the `gh` command-line tool for analyzing the count of pr
 > [!NOTE]
 > If you are looking to compare your language frequency against public trends, you can access quarterly data from 2020 onward [here](https://innovationgraph.github.com/global-metrics/programming-languages) as part of GitHub's [Innovation Graph](https://innovationgraph.github.com/) project.
 
-# Pre-requisites
+## Pre-requisites
 
 1. Install the GitHub CLI: https://github.com/cli/cli#installation
 2. Confirm that you are authenticated with an account that has access to the enterprise/org you would like to analyze:
@@ -23,19 +23,19 @@ gh auth login -s "repo,read:enterprise"
 > [!IMPORTANT]
 > Enterprise owners do not inherently have access to all of the repositories across their organizations. You must ensure that your account has the necessary permissions to access the repositories you want to analyze.
 
-# Installation
+## Installation
 
 To install this extension, run the following command:
 ```
 gh extension install CallMeGreg/gh-language
 ```
 
-# Usage
+## Usage
 
 > [!TIP]
 > Each command has default limits to prevent accidental excessive API usage. You can adjust these limits using the `--org-limit` and `--repo-limit` flags. To analyze all repositories in an organization or enterprise, set these flags to a very high number (e.g., `1000000`).
 
-## Universal Flags
+### Universal Flags
 
 The following flags are available for all commands:
 - `--org` or `--enterprise` (`-e`): Specify the organization or enterprise slug to analyze. These flags are mutually exclusive, and one of them is required.
@@ -64,92 +64,79 @@ When the `--codeql` flag is set, the analysis will only include the following la
 - TypeScript
 - Vue
 
-When used with the `count` command, the `--codeql` flag will also display the number of unique repositories that include at least one CodeQL-supported language.
-
-## Count command
+### Count command
 
 Display the count of each programming language used in repos across an enterprise or organization.
 ```
-gh language count --enterprise YOUR_ENTERPRISE_SLUG
+gh language count --org microsoft
 ```
 
-https://github.com/user-attachments/assets/27c0a12f-1643-4483-aeae-95aa61165879
+![count](demo/count.gif)
 
-## Trend command
+When the `--codeql` flag is set, the analysis will filter for only CodeQL-supported languages, and also display the number of unique repositories that include at least one CodeQL-supported language:
+```
+gh language count --org microsoft --repo-limit 300 --codeql
+```
+
+![count-codeql](demo/count-codeql.gif)
+
+### Trend command
 
 Display the breakdown of programming languages used in repos across an enterprise or organization per year, based on the repo creation date. The output includes:
 
-- **Trend Summary Table** — A high-level view of each top language with color-coded trend indicators (▲ rising, ▼ falling, ● unchanged) and year-over-year change.
-- **Horizontal Bar Chart** — A visual comparison of language counts for the most recent year, powered by [pterm](https://github.com/pterm/pterm).
-- **Line Graph** — A multi-series ASCII line chart (via [asciigraph](https://github.com/guptarohit/asciigraph)) showing how each language's adoption has changed over time.
+- **Line Graph** — A multi-series line chart showing how each language's adoption has changed over time.
 - **Year-by-Year Breakdown** — Detailed per-year tables with trend direction and year-over-year deltas compared to the prior year.
 
 ```
-gh language trend --enterprise YOUR_ENTERPRISE_SLUG
+gh language trend --org microsoft
 ```
+
+![trend](demo/trend.gif)
 
 The `trend` command also supports optional year range filtering:
 - `--min-year`: Only include years greater than or equal to this value.
-- `--max-year`: Only include years less than or equal to this value.
+- `--max-year`: Only include years less than or equal to this value (defaults to last year).
 
 ```
-gh language trend --enterprise YOUR_ENTERPRISE_SLUG --min-year 2020 --max-year 2024
+gh language trend --org microsoft --repo-limit 500 --max-year 2015
 ```
 
-https://github.com/user-attachments/assets/33c1f4ac-57d9-4ed9-a696-0eb845cd6638
+![trend-filtered](demo/trend-filtered.gif)
 
-## Data command
+### Data command
 
 Analyze languages by bytes of data, rather than count, across repositories in an enterprise or organization.
 ```
-gh language data --enterprise YOUR_ENTERPRISE_SLUG
+gh language data --org microsoft
 ```
 
-Specify the unit for displaying data with the `--unit` flag. Supported units are `bytes`, `kilobytes`, `megabytes`, and `gigabytes`. The default is `bytes`.:
-```
-gh language data --enterprise YOUR_ENTERPRISE_SLUG --unit megabytes
-```
+![data](demo/data.gif)
 
-https://github.com/user-attachments/assets/435f1d81-2d56-4320-b3dd-7f8d6f2472bb
-
-## Example Usage
-Analyze the top 20 languages used across all repositories in an enterprise:
+Specify the unit for displaying data with the `--unit` flag. Supported units are `bytes`, `kilobytes`, `megabytes`, and `gigabytes`. The default is `bytes`:
 ```
-gh language count --enterprise YOUR_ENTERPRISE_SLUG --org-limit 1000000 --repo-limit 1000000 --top 20
+gh language data --org microsoft --unit megabytes
 ```
 
-Analyze the trend of Rust and Go usage in repositories across an organization, limited to the first 100 repositories:
-```
-gh language trend --org YOUR_ORG_SLUG --repo-limit 100 --language Rust,Go
-```
+### Targeting enterprises and/or GitHub Enterprise Server
 
-Analyze the top 5 languages, based on data size, in megabytes, used across all repositories in an organization:
-```
-gh language data --org YOUR_ORG_SLUG --repo-limit 1000000 --top 5 --unit megabytes
-```
+Rather than targeting a specific organization, you can analyze across an entire enterprise, which may include multiple organizations. To do this, use the `--enterprise` (`-e`) flag instead of `--org`.
 
-Analyze all CodeQL-supported languages in an enterprise across all repositories:
+Regardless of whether you are targeting an enterprise or organization, you can also specify a GitHub Enterprise Server URL with the `--github-enterprise-server-url` (`-u`) flag. By default, the tool targets `github.com`.
+
+Combining these into one example, the following command counts languages across all repositories in an enterprise hosted on a GitHub Enterprise Server:
 ```
-gh language count --enterprise YOUR_ENTERPRISE_SLUG --org-limit 1000000 --repo-limit 1000000 --codeql
+gh language count --enterprise github -u callmegreg-db6woz.ghe-test.net --org-limit 1000000 --repo-limit 1000000
 ```
 
-Analyze languages in an organization on a GitHub Enterprise Server instance:
-```
-gh language count --org YOUR_ORG_SLUG --github-enterprise-server-url ghes.example.com --repo-limit 1000000
-```
+![ghes](demo/ghes.gif)
 
-https://github.com/user-attachments/assets/bb8f9ccb-9f71-40b2-9dc4-8d1e34476afd
+### Performance
 
-## Performance
+The `count` and `trend` commands have been optimized to use GitHub's GraphQL API, which provides significant performance improvements over the REST API. These commands are expected to run ~100x faster than `data`.
 
-The `count` and `trend` commands have been optimized to use GitHub's GraphQL API, which provides significant performance improvements over the REST API:
+The `data` command continues to use the REST API as it requires detailed byte-level language statistics that are only available through the REST endpoint.
 
-- **Reduced API calls**: GraphQL fetches repository and language data for 100 repositoreis in a single request, compared to the REST API which requires a single request for each repository.
-- **Better rate limiting**: GraphQL API has different rate limits than REST API, often allowing for more processing before hitting limits
-
-The `data` command continues to use the REST API as it requires detailed byte-level language statistics that are only available through the REST endpoints.
-
-## Help
+### Help
 
 For help, run:
 ```
@@ -180,5 +167,5 @@ Flags:
 Use "gh language [command] --help" for more information about a command.
 ```
 
-# License
+## License
 This tool is licensed under the MIT License. See the [LICENSE](https://github.com/CallMeGreg/gh-language/blob/main/LICENSE) file for details.
