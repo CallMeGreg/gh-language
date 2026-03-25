@@ -121,7 +121,7 @@ gh language data --org microsoft --unit megabytes
 
 To target a GitHub Enterprise Server instance, use the `--github-enterprise-server-url` (`-u`) flag with any command. For example, to count languages across all repositories in an enterprise:
 ```
-gh language count --enterprise github -u callmegreg-phw3fn.ghe-test.net --org-limit 1000000 --repo-limit 1000000
+gh language count --enterprise github -u callmegreg-db6woz.ghe-test.net --org-limit 1000000 --repo-limit 1000000
 ```
 
 ![ghes](demo/ghes.gif)
