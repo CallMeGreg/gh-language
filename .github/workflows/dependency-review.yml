@@ -11,12 +11,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Dependency Review
-        uses: actions/dependency-review-action@v4.8.2
+        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
         with:
-          # Block pull requests with vulnerabilities at moderate severity or higher
+          # Block pull requests with vulnerabilities at low severity or higher
           fail-on-severity: low
           # Post detailed summary in PR comments
           comment-summary-in-pr: on-failure
