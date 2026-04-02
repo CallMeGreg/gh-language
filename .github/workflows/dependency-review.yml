@@ -16,7 +16,7 @@ jobs:
       - name: Dependency Review
         uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
         with:
-          # Block pull requests with vulnerabilities at moderate severity or higher
+          # Block pull requests with vulnerabilities at low severity or higher
           fail-on-severity: low
           # Post detailed summary in PR comments
           comment-summary-in-pr: on-failure
