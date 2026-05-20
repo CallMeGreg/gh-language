@@ -6,3 +6,12 @@ updates:
     schedule:
       # Check for updates to GitHub Actions every week
       interval: "weekly"
+    cooldown:
+      default-days: 3
+
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 3
