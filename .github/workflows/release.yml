@@ -6,9 +6,6 @@ on:
       - main
 
 permissions:
-  # TODO(supply-chain): Review broad permissions. `contents: write` is needed to push tags;
-  # `id-token: write` and `attestations: write` are needed for build attestations via
-  # cli/gh-extension-precompile. Scope these down if attestation generation is removed.
   contents: write
   id-token: write
   attestations: write
